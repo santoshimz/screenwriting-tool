@@ -1,0 +1,1959 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Editor · ScriptBox</title>
+  <style>
+    :root {
+      --bg: #121418;
+      --panel: #1c2028;
+      --border: #2a3140;
+      --text: #e8eaef;
+      --muted: #8b93a6;
+      --accent: #6b9fff;
+      --ok: #5ecf8e;
+    }
+    * { box-sizing: border-box; }
+    html {
+      height: 100%;
+    }
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.45;
+      height: 100%;
+      min-height: 100%;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .app-top {
+      flex-shrink: 0;
+      position: sticky;
+      top: 0;
+      z-index: 40;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+    }
+    header {
+      max-width: none;
+      margin: 0;
+      padding: 1rem 1.25rem 0;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      gap: 0.75rem 1rem;
+    }
+    header h1 {
+      margin: 0;
+      font-size: 1.15rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+    .toolbar {
+      max-width: none;
+      margin: 0;
+      padding: 0.65rem 1.25rem;
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .toolbar-rail {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.2rem 0.4rem 0.2rem 0.45rem;
+      border-radius: 12px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+    }
+    .toolbar-icon-actions {
+      display: flex;
+      flex-wrap: nowrap;
+      gap: 0.35rem;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    .toolbar-icon-actions .icon-btn.preview-active {
+      background: rgba(107, 159, 255, 0.22);
+      color: var(--accent);
+    }
+    .toolbar-icon-actions button.icon-btn {
+      width: 2.25rem;
+      height: 2.25rem;
+      min-width: 2.25rem;
+      min-height: 2.25rem;
+      border-radius: 8px;
+    }
+    .toolbar-icon-actions button.icon-btn svg {
+      width: 1.08rem;
+      height: 1.08rem;
+    }
+    #btnReset {
+      display: none !important;
+    }
+    button {
+      cursor: pointer;
+      border: none;
+      border-radius: 8px;
+      padding: 0.5rem 0.85rem;
+      font-size: 0.85rem;
+      font-weight: 500;
+      background: var(--border);
+      color: var(--text);
+    }
+    button.primary {
+      background: var(--accent);
+      color: #0a0c10;
+    }
+    button.primary:disabled { opacity: 0.45; cursor: not-allowed; }
+    button.danger { background: #4a2a2a; color: #ffb4b4; }
+    .editor-header-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 0.5rem 1rem;
+      width: 100%;
+    }
+    .editor-header-row h1.editor-main-title {
+      margin: 0;
+      flex: 1;
+      min-width: 160px;
+      font-size: 1.15rem;
+      font-weight: 600;
+      color: var(--text);
+      line-height: 1.35;
+    }
+    .editor-header-row h1.editor-main-title .meta-summary-link {
+      color: inherit;
+      text-decoration: none;
+      display: block;
+      min-width: 0;
+      cursor: pointer;
+      border-radius: 6px;
+    }
+    .editor-header-row h1.editor-main-title .meta-summary-link:hover {
+      color: var(--accent);
+    }
+    .editor-header-row h1.editor-main-title .meta-summary-link:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 3px;
+    }
+    a.meta-link {
+      font-size: 0.8rem;
+      padding: 0.4rem 0.75rem;
+      border-radius: 8px;
+      background: var(--border);
+      color: var(--text);
+      text-decoration: none;
+      font-weight: 500;
+      display: inline-block;
+    }
+    a.meta-link:hover {
+      filter: brightness(1.08);
+    }
+    .app-split {
+      flex: 1;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(280px, 44vw);
+      min-height: 0;
+      border-top: none;
+    }
+    .app-split.preview-off {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .app-split.preview-off .preview-pane {
+      display: none;
+    }
+    @media (max-width: 960px) {
+      .app-split:not(.preview-off) {
+        grid-template-columns: 1fr;
+        grid-template-rows: minmax(200px, 40vh) 1fr;
+      }
+      .app-split:not(.preview-off) .preview-pane {
+        border-left: none !important;
+        border-bottom: 1px solid var(--border);
+        order: -1;
+      }
+    }
+    .editor-pane {
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 0.75rem 1.25rem 2rem;
+      min-height: 0;
+      -webkit-overflow-scrolling: touch;
+    }
+    #blocks {
+      max-width: 880px;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    .preview-pane {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      background: #0a0c10;
+      border-left: 1px solid var(--border);
+    }
+    .preview-header {
+      flex-shrink: 0;
+      padding: 0.45rem 0.75rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      border-bottom: 1px solid var(--border);
+    }
+    .preview-frame-wrap {
+      flex: 1;
+      position: relative;
+      min-height: 320px;
+    }
+    #pdfPreview {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      border: none;
+      background: #525659;
+    }
+    .preview-placeholder {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      text-align: center;
+      font-size: 0.85rem;
+      color: var(--muted);
+      background: #0a0c10;
+      z-index: 1;
+    }
+    .preview-placeholder.hidden {
+      display: none;
+    }
+    .beat {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.75rem 0.85rem;
+      display: grid;
+      grid-template-columns: 32px 1fr auto;
+      gap: 0.65rem 0.75rem;
+      align-items: start;
+    }
+    .beat.dragging-beat {
+      opacity: 0.65;
+      box-shadow: 0 0 0 1px var(--accent);
+    }
+    .beat-drag-handle {
+      grid-row: 1 / -1;
+      align-self: stretch;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 0.4rem 0.15rem;
+      margin: -0.15rem 0;
+      border-radius: 6px;
+      cursor: grab;
+      user-select: none;
+      color: var(--muted);
+      font-size: 0.95rem;
+      line-height: 1;
+      letter-spacing: -0.12em;
+      touch-action: none;
+    }
+    .beat-drag-handle:hover {
+      color: var(--text);
+      background: rgba(107, 159, 255, 0.08);
+    }
+    .beat-drag-handle:active {
+      cursor: grabbing;
+    }
+    .beat-column {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .beat-body {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .beat.collapsed .beat-body {
+      display: none;
+    }
+    .beat-summary-bar {
+      display: none;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.15rem 0;
+      border-radius: 6px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .beat.collapsed .beat-summary-bar {
+      display: flex;
+    }
+    .beat-summary-bar:hover {
+      background: rgba(107, 159, 255, 0.07);
+    }
+    .beat-summary-bar:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+    .beat-summary-chevron {
+      color: var(--muted);
+      font-size: 0.65rem;
+      flex-shrink: 0;
+      width: 1rem;
+      text-align: center;
+    }
+    .beat-summary {
+      flex: 1;
+      min-width: 0;
+      font-size: 0.8rem;
+      color: var(--muted);
+      line-height: 1.35;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .beat-lines-toolbar .beat-collapse-btn {
+      cursor: pointer;
+      border: none;
+      border-radius: 8px;
+      padding: 0.35rem 0.55rem;
+      font-size: 0.78rem;
+      font-weight: 500;
+      background: var(--border);
+      color: var(--muted);
+    }
+    .beat-lines-toolbar .beat-collapse-btn:hover {
+      color: var(--text);
+      filter: brightness(1.08);
+    }
+    .beat-lines-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+      align-items: center;
+    }
+    .beat-lines-toolbar .line-add-btn {
+      padding: 0.35rem 0.65rem;
+      font-size: 0.8rem;
+    }
+    .beat-lines {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .line-row {
+      display: grid;
+      grid-template-columns: 28px minmax(118px, 132px) 1fr auto;
+      gap: 0.45rem 0.5rem;
+      align-items: start;
+    }
+    .line-row.dragging-line {
+      opacity: 0.55;
+      outline: 1px dashed var(--accent);
+      border-radius: 6px;
+    }
+    .line-drag-handle {
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 0.45rem 0.1rem;
+      margin-top: 0.05rem;
+      border-radius: 6px;
+      cursor: grab;
+      user-select: none;
+      color: var(--muted);
+      font-size: 0.85rem;
+      line-height: 1;
+      letter-spacing: -0.1em;
+      touch-action: none;
+    }
+    .line-drag-handle:hover {
+      color: var(--text);
+      background: rgba(107, 159, 255, 0.08);
+    }
+    .line-drag-handle:active {
+      cursor: grabbing;
+    }
+    @media (max-width: 560px) {
+      .line-row {
+        grid-template-columns: 28px 1fr;
+        grid-template-rows: auto auto auto;
+      }
+      .line-row .line-drag-handle {
+        grid-row: 1 / -1;
+        align-self: start;
+      }
+      .line-row select {
+        grid-column: 2;
+        grid-row: 1;
+      }
+      .line-row textarea {
+        grid-column: 2;
+        grid-row: 2;
+      }
+      .line-row .line-row-actions {
+        grid-column: 2;
+        grid-row: 3;
+        flex-direction: row;
+        flex-wrap: wrap;
+      }
+    }
+    .line-row select {
+      width: 100%;
+      padding: 0.4rem 0.35rem;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: #141820;
+      color: var(--text);
+      font-size: 0.78rem;
+    }
+    .line-row textarea {
+      width: 100%;
+      min-height: 2.5rem;
+      resize: vertical;
+      padding: 0.45rem 0.5rem;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: #0f1218;
+      color: var(--text);
+      font-family: "Courier New", Courier, monospace;
+      font-size: 0.85rem;
+      line-height: 1.35;
+      box-sizing: border-box;
+    }
+    .line-row textarea.line-text-autogrow {
+      resize: none;
+      overflow-y: hidden;
+      overflow-x: hidden;
+      min-height: 2.5rem;
+    }
+    .line-row textarea:focus {
+      outline: 2px solid var(--accent);
+      border-color: transparent;
+    }
+    .line-row-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+      align-items: center;
+    }
+    .beat-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      align-items: center;
+    }
+    button.icon-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 1.75rem;
+      height: 1.75rem;
+      min-width: 1.75rem;
+      min-height: 1.75rem;
+      padding: 0;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      background: var(--border);
+      color: var(--text);
+      flex-shrink: 0;
+      font-size: 0;
+      line-height: 0;
+      font-weight: 400;
+    }
+    button.icon-btn:hover {
+      filter: brightness(1.12);
+    }
+    button.icon-btn svg {
+      width: 0.9rem;
+      height: 0.9rem;
+      flex-shrink: 0;
+    }
+    button.icon-btn.danger {
+      background: #3d2424;
+      color: #f0a8a8;
+    }
+    #status {
+      max-width: none;
+      margin: 0;
+      padding: 0 1.25rem 0.75rem;
+      font-size: 0.85rem;
+      color: var(--muted);
+      min-height: 1.25rem;
+    }
+    #status.ok { color: var(--ok); }
+    #status.err { color: #ff8a8a; }
+    .loading-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+      background: rgba(10, 12, 16, 0.78);
+      backdrop-filter: blur(5px);
+    }
+    .loading-overlay.hidden {
+      display: none !important;
+      pointer-events: none;
+    }
+    .loading-spinner {
+      width: 42px;
+      height: 42px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: loading-spin 0.72s linear infinite;
+    }
+    .loading-label {
+      font-size: 0.88rem;
+      color: var(--muted);
+    }
+    @keyframes loading-spin {
+      to { transform: rotate(360deg); }
+    }
+    .versions-dialog {
+      max-width: min(92vw, 440px);
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--panel);
+      color: var(--text);
+      padding: 0;
+    }
+    .versions-dialog::backdrop {
+      background: rgba(10, 12, 16, 0.65);
+    }
+    .versions-dialog-inner {
+      padding: 1.1rem 1.25rem 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      max-height: min(70vh, 520px);
+    }
+    .versions-dialog-inner h2 {
+      margin: 0;
+      font-size: 1rem;
+      font-weight: 600;
+    }
+    .versions-hint {
+      margin: 0;
+      font-size: 0.78rem;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+    .versions-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      flex: 1;
+      min-height: 0;
+    }
+    .versions-list li {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.4rem 0.5rem;
+      padding: 0.45rem 0.5rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: #141820;
+      font-size: 0.8rem;
+    }
+    .versions-list li.versions-empty {
+      color: var(--muted);
+      border-style: dashed;
+    }
+    .versions-list .v-meta {
+      flex: 1;
+      min-width: 140px;
+      color: var(--muted);
+      line-height: 1.35;
+    }
+    .versions-list .v-meta strong {
+      color: var(--text);
+      font-weight: 600;
+      display: block;
+    }
+    .versions-list .v-restore {
+      flex-shrink: 0;
+    }
+    .versions-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.5rem;
+      padding-top: 0.5rem;
+      border-top: 1px solid var(--border);
+      margin-top: 0.15rem;
+    }
+  </style>
+</head>
+<body>
+  <div id="loadingOverlay" class="loading-overlay" role="status" aria-live="polite" aria-busy="true">
+    <div class="loading-spinner" aria-hidden="true"></div>
+    <span class="loading-label">Loading script…</span>
+  </div>
+  <input type="hidden" id="title" value="" />
+  <input type="hidden" id="author" value="" />
+  <div class="app-top">
+      <header>
+        <div class="editor-header-row">
+          <a class="meta-link" id="linkHome" href="../">← Projects</a>
+          <h1 class="editor-main-title">
+            <a
+              class="meta-summary-link"
+              id="metaSummary"
+              href="../"
+              aria-live="polite"
+              title="Edit title and author"
+            ></a>
+          </h1>
+        </div>
+      </header>
+        <div class="toolbar">
+        <div class="toolbar-rail">
+          <div class="toolbar-icon-actions" role="toolbar" aria-label="Script, export, and versions">
+          <button
+            type="button"
+            class="icon-btn"
+            id="btnAddBeatToolbar"
+            aria-label="Add a beat at the end of the script"
+            title="Add a beat at the end of the script"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </button>
+          <button
+            type="button"
+            class="icon-btn primary"
+            id="btnPdf"
+            aria-label="Download the screenplay as a PDF file"
+            title="Download the screenplay as a PDF file"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          </button>
+          <button
+            type="button"
+            class="icon-btn"
+            id="btnTogglePreview"
+            aria-label="Show the PDF preview panel"
+            title="Show the PDF preview panel"
+            aria-pressed="false"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+          <button
+            type="button"
+            class="icon-btn"
+            id="btnSaveVersion"
+            aria-label="Save a numbered snapshot of this script (v1, v2, …)"
+            title="Save a numbered snapshot of this script (v1, v2, …)"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          </button>
+          <button
+            type="button"
+            class="icon-btn"
+            id="btnVersions"
+            aria-label="Open saved version history and restore a snapshot"
+            title="Open saved version history and restore a snapshot"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="12 8 12 12 14 14"/><circle cx="12" cy="12" r="10"/><path d="M4.5 4.5a15 15 0 0 0 4 6"/><path d="M19.5 4.5a15 15 0 0 1-4 6"/></svg>
+          </button>
+          </div>
+          <button type="button" class="danger" id="btnReset">Reset</button>
+        </div>
+      </div>
+      <div id="status" aria-live="polite"></div>
+    </div>
+    <div id="appSplit" class="app-split preview-off">
+      <div class="editor-pane">
+        <div id="blocks"></div>
+      </div>
+      <aside class="preview-pane" id="previewPane" aria-label="PDF preview">
+        <div class="preview-header">Preview</div>
+        <div class="preview-frame-wrap">
+          <div id="previewPlaceholder" class="preview-placeholder hidden">Open preview from the toolbar to generate a PDF.</div>
+          <iframe id="pdfPreview" title="ScriptBox PDF preview"></iframe>
+        </div>
+      </aside>
+    </div>
+
+  <dialog id="versionsDialog" class="versions-dialog" aria-labelledby="versionsDialogTitle">
+    <div class="versions-dialog-inner">
+      <h2 id="versionsDialogTitle">Saved versions</h2>
+      <p class="versions-hint">Each save gets the next label (v1, v2, …). Restoring replaces the current draft; autosave continues from there. Up to 50 versions per project (oldest removed).</p>
+      <ul id="versionsList" class="versions-list"></ul>
+      <div class="versions-actions">
+        <button
+          type="button"
+          id="btnVersionsClose"
+          aria-label="Close the version history dialog"
+          title="Close the version history dialog"
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  </dialog>
+
+  <script>
+    const PROJECTS_REGISTRY_KEY = 'screenplay-projects-v1';
+    const $ = (id) => document.getElementById(id);
+
+    function screenplayListHref() {
+      const p = window.location.pathname || '';
+      if (p === '/screenplay' || p.startsWith('/screenplay/')) return '/screenplay/';
+      return '/';
+    }
+
+    function screenplayMetaHref(pid) {
+      return `${screenplayListHref()}?p=${encodeURIComponent(pid)}`;
+    }
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const projectId = urlParams.get('p');
+    const projectIdValid = projectId && /^[a-zA-Z0-9\-]{8,64}$/.test(projectId);
+    if (!projectIdValid) {
+      window.location.replace(screenplayListHref());
+    } else {
+
+    (function syncEditorNavHrefs() {
+      const h = $('linkHome');
+      if (h) h.href = screenplayListHref();
+      const meta = $('metaSummary');
+      if (meta) meta.href = screenplayMetaHref(projectId);
+    })();
+
+    function setLoading(on) {
+      const el = document.getElementById('loadingOverlay');
+      if (!el) return;
+      el.classList.toggle('hidden', !on);
+      el.setAttribute('aria-busy', on ? 'true' : 'false');
+    }
+
+    function draftStorageKey() {
+      return `screenplay-project-v1-${projectId}`;
+    }
+
+    function loadRegistry() {
+      try {
+        const r = JSON.parse(localStorage.getItem(PROJECTS_REGISTRY_KEY) || '{}');
+        return Array.isArray(r.projects) ? r : { projects: [] };
+      } catch {
+        return { projects: [] };
+      }
+    }
+
+    function saveRegistry(reg) {
+      try {
+        localStorage.setItem(PROJECTS_REGISTRY_KEY, JSON.stringify(reg));
+      } catch { /* ignore */ }
+    }
+
+    function ensureProjectInRegistry(id) {
+      const reg = loadRegistry();
+      if (reg.projects.some((p) => p.id === id)) return;
+      reg.projects.push({ id, title: 'Untitled', updatedAt: new Date().toISOString() });
+      saveRegistry(reg);
+    }
+
+    function updateRegistryMeta(id, title, updatedAt) {
+      const reg = loadRegistry();
+      const i = reg.projects.findIndex((p) => p.id === id);
+      if (i >= 0) {
+        reg.projects[i].title = title || reg.projects[i].title || 'Untitled';
+        reg.projects[i].updatedAt = updatedAt || new Date().toISOString();
+      } else {
+        reg.projects.push({ id, title: title || 'Untitled', updatedAt: updatedAt || new Date().toISOString() });
+      }
+      saveRegistry(reg);
+    }
+
+    function removeProjectFromRegistry(id) {
+      const reg = loadRegistry();
+      reg.projects = reg.projects.filter((p) => p.id !== id);
+      saveRegistry(reg);
+    }
+
+    let beatsSnapshot = [];
+    let editorEnteredFlag = false;
+    let previewVisible = false;
+
+    /** When UI is at /screenplay/, call /screenplay/api/* so it matches the mounted router prefix. */
+    function screenplayUrlPath(apiPath) {
+      const p = window.location.pathname || '';
+      const underScreenplay = p === '/screenplay' || p.startsWith('/screenplay/');
+      const prefix = underScreenplay ? '/screenplay' : '';
+      const path = apiPath.startsWith('/') ? apiPath : `/${apiPath}`;
+      return prefix + path;
+    }
+
+    function screenplayApiCandidates(apiPath) {
+      const primary = screenplayUrlPath(apiPath);
+      const alt = primary.startsWith('/screenplay')
+        ? apiPath.startsWith('/') ? apiPath : `/${apiPath}`
+        : `/screenplay${apiPath.startsWith('/') ? apiPath : `/${apiPath}`}`;
+      return primary === alt ? [primary] : [primary, alt];
+    }
+
+    function parseSavedAt(iso) {
+      if (!iso || typeof iso !== 'string') return 0;
+      const t = Date.parse(iso);
+      return Number.isNaN(t) ? 0 : t;
+    }
+
+    function pickNewerDraft(local, remote) {
+      if (!remote) return local;
+      if (!local) return remote;
+      const tr = parseSavedAt(remote.savedAt);
+      const tl = parseSavedAt(local.savedAt);
+      if (tr === 0 && tl === 0) return local;
+      return tr >= tl ? remote : local;
+    }
+
+    function withProjectQuery(urls) {
+      return urls.map((u) => {
+        const sep = u.includes('?') ? '&' : '?';
+        return `${u}${sep}project_id=${encodeURIComponent(projectId)}`;
+      });
+    }
+
+    async function fetchDraftFromServer() {
+      try {
+        const urls = withProjectQuery(screenplayApiCandidates('/api/draft'));
+        for (const url of urls) {
+          const res = await fetch(url);
+          if (res.ok) return await res.json();
+          if (res.status !== 404) break;
+        }
+      } catch { /* offline */ }
+      return null;
+    }
+
+    async function pushDraftToServer(state) {
+      try {
+        const urls = withProjectQuery(screenplayApiCandidates('/api/draft'));
+        const body = {
+          title: state.title != null ? String(state.title) : '',
+          author: state.author != null ? String(state.author) : '',
+          beats: Array.isArray(state.beats) ? state.beats : [],
+          editorEntered: !!state.editorEntered,
+        };
+        for (const url of urls) {
+          const res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+          });
+          if (res.ok) {
+            const back = await res.json();
+            if (back && back.savedAt) {
+              try {
+                const raw = localStorage.getItem(draftStorageKey());
+                if (raw) {
+                  const cur = JSON.parse(raw);
+                  cur.savedAt = back.savedAt;
+                  localStorage.setItem(draftStorageKey(), JSON.stringify(cur));
+                }
+              } catch { /* ignore */ }
+            }
+            return;
+          }
+          if (res.status !== 404) break;
+        }
+      } catch { /* ignore */ }
+    }
+
+    async function deleteDraftOnServer() {
+      try {
+        const urls = withProjectQuery(screenplayApiCandidates('/api/draft'));
+        for (const url of urls) {
+          const res = await fetch(url, { method: 'DELETE' });
+          if (res.ok || res.status !== 404) break;
+        }
+      } catch { /* ignore */ }
+    }
+
+    const FIELD_ORDER = [
+      'scene',
+      'action',
+      'character',
+      'parenthetical',
+      'dialogue',
+      'transition',
+    ];
+
+    const FIELD_LABELS = {
+      scene: 'Scene heading',
+      action: 'Action',
+      character: 'Character',
+      parenthetical: 'Parenthetical',
+      dialogue: 'Dialogue',
+      transition: 'Transition',
+    };
+
+    const PLACEHOLDERS = {
+      scene: 'INT. LOCATION - DAY',
+      action: 'What we see and hear…',
+      character: 'CHARACTER NAME',
+      parenthetical: 'beat or direction (no need for extra parens)',
+      dialogue: 'Spoken line.',
+      transition: 'CUT TO:',
+    };
+
+    const ICON_REMOVE_LINE_SVG =
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg>';
+
+    const ICON_REMOVE_BEAT_SVG =
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>';
+
+    function syncLineTextareaAutosize(ta, sel) {
+      const grow = sel.value === 'action' || sel.value === 'dialogue';
+      ta.classList.toggle('line-text-autogrow', grow);
+      if (grow) {
+        ta.style.resize = 'none';
+        ta.style.overflowY = 'hidden';
+        ta.style.overflowX = 'hidden';
+        ta.style.height = 'auto';
+        void ta.offsetHeight;
+        ta.style.height = `${ta.scrollHeight}px`;
+      } else {
+        ta.style.height = '';
+        ta.style.overflowY = '';
+        ta.style.overflowX = '';
+        ta.style.resize = '';
+      }
+    }
+
+    function scheduleLineTextareaAutosize(ta, sel) {
+      requestAnimationFrame(() => {
+        syncLineTextareaAutosize(ta, sel);
+        requestAnimationFrame(() => syncLineTextareaAutosize(ta, sel));
+      });
+    }
+
+    function syncAllLineTextareas() {
+      const blocks = $('blocks');
+      if (!blocks) return;
+      for (const row of blocks.querySelectorAll('.line-row')) {
+        const ta = row.querySelector('textarea');
+        const sel = row.querySelector('select');
+        if (ta && sel) syncLineTextareaAutosize(ta, sel);
+      }
+    }
+
+    function updateBeatSummary(beat) {
+      const el = beat.querySelector('.beat-summary');
+      if (!el) return;
+      let sceneText = '';
+      for (const row of beat.querySelectorAll('.line-row')) {
+        const sel = row.querySelector('select');
+        const ta = row.querySelector('textarea');
+        if (!sel || !ta || sel.value !== 'scene') continue;
+        sceneText = (ta.value || '').trim().replace(/\s+/g, ' ');
+        break;
+      }
+      const upper = sceneText ? sceneText.toUpperCase() : '';
+      const preview =
+        upper.length > 140 ? `${upper.slice(0, 137)}…` : upper || 'No scene heading';
+      el.textContent = preview;
+      const bar = beat.querySelector('.beat-summary-bar');
+      if (bar) {
+        bar.setAttribute(
+          'aria-label',
+          upper ? `Expand beat — ${upper}` : 'Expand beat — no scene heading',
+        );
+      }
+    }
+
+    function collapseAllBeatsExcept(exceptBeat) {
+      const blocks = $('blocks');
+      if (!blocks) return;
+      for (const b of blocks.querySelectorAll('.beat')) {
+        if (b === exceptBeat) continue;
+        b.classList.add('collapsed');
+        const bar = b.querySelector('.beat-summary-bar');
+        if (bar) bar.setAttribute('tabindex', '0');
+        updateBeatSummary(b);
+      }
+    }
+
+    function setStatus(msg, cls) {
+      const el = $('status');
+      el.textContent = msg || '';
+      el.className = cls ? cls : '';
+    }
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(draftStorageKey());
+        if (raw) return JSON.parse(raw);
+      } catch { /* ignore */ }
+      return null;
+    }
+
+    /** Legacy six-field beat or new { elements } → canonical { elements }. */
+    function normalizeBeat(b) {
+      if (b && Array.isArray(b.elements) && b.elements.length) {
+        return {
+          elements: b.elements.map((e) => {
+            const type = FIELD_ORDER.includes(e.type) ? e.type : 'action';
+            return { type, text: e.text != null ? String(e.text) : '' };
+          }),
+        };
+      }
+      const elements = [];
+      if (b) {
+        for (const key of FIELD_ORDER) {
+          const raw = b[key];
+          if (raw != null && String(raw).trim()) {
+            elements.push({ type: key, text: String(raw) });
+          }
+        }
+      }
+      if (!elements.length) {
+        return {
+          elements: [
+            { type: 'scene', text: '' },
+            { type: 'action', text: '' },
+            { type: 'character', text: '' },
+            { type: 'dialogue', text: '' },
+          ],
+        };
+      }
+      return { elements };
+    }
+
+    function emptyBeat() {
+      return {
+        elements: [
+          { type: 'scene', text: '' },
+          { type: 'action', text: '' },
+          { type: 'character', text: '' },
+          { type: 'dialogue', text: '' },
+        ],
+      };
+    }
+
+    function collectBeatsForSave() {
+      if ($('blocks') && $('blocks').querySelector('.beat')) {
+        const b = collectBeats();
+        beatsSnapshot = b;
+        return b;
+      }
+      return beatsSnapshot;
+    }
+
+    function saveState() {
+      const beats = collectBeatsForSave();
+      const savedAt = new Date().toISOString();
+      const state = {
+        title: $('title').value,
+        author: $('author').value,
+        beats,
+        editorEntered: editorEnteredFlag,
+        savedAt,
+      };
+      try {
+        localStorage.setItem(draftStorageKey(), JSON.stringify(state));
+      } catch (e) {
+        setStatus('Could not save draft (storage full?)', 'err');
+        return;
+      }
+      updateRegistryMeta(
+        projectId,
+        ($('title').value || '').trim() || 'Untitled',
+        savedAt
+      );
+      void pushDraftToServer(state);
+    }
+
+    function collectBeats() {
+      return [...$('blocks').querySelectorAll('.beat')].map((beat) => {
+        const linesHost = beat.querySelector('.beat-lines');
+        if (!linesHost) return emptyBeat();
+        const elements = [...linesHost.querySelectorAll('.line-row')].map((row) => {
+          const sel = row.querySelector('select');
+          const ta = row.querySelector('textarea');
+          const type = sel && FIELD_ORDER.includes(sel.value) ? sel.value : 'action';
+          return { type, text: ta ? ta.value : '' };
+        });
+        return elements.length ? { elements } : emptyBeat();
+      });
+    }
+
+    /** Flatten beats → API blocks (order within each beat, then beats top to bottom). */
+    function collectBlocks() {
+      const blocks = [];
+      for (const beat of collectBeats()) {
+        for (const el of beat.elements) {
+          const text = (el.text || '').trim();
+          if (text) blocks.push({ type: el.type, text });
+        }
+      }
+      return blocks;
+    }
+
+    let dragBeatEl = null;
+    let dragLineEl = null;
+    let beatDragRaf = 0;
+    let beatDragPendingY = null;
+    let lineDragRaf = 0;
+    let lineDragPendingY = null;
+
+    /** 1×1 canvas — synchronous setDragImage without snapshotting tall beats as the drag ghost. */
+    const emptyDragCanvas = document.createElement('canvas');
+    emptyDragCanvas.width = 1;
+    emptyDragCanvas.height = 1;
+
+    function getDragAfterElement(container, clientY, itemSelector) {
+      const items = [...container.querySelectorAll(`${itemSelector}:not(.dragging-line):not(.dragging-beat)`)];
+      return items.reduce(
+        (closest, child) => {
+          const box = child.getBoundingClientRect();
+          const offset = clientY - box.top - box.height / 2;
+          if (offset < 0 && offset > closest.offset) {
+            return { offset, element: child };
+          }
+          return closest;
+        },
+        { offset: Number.NEGATIVE_INFINITY, element: undefined }
+      ).element;
+    }
+
+    function moveBeforeSibling(container, dragged, before) {
+      if (before == null) {
+        if (dragged.parentNode === container && dragged.nextElementSibling === null) return;
+        container.appendChild(dragged);
+        return;
+      }
+      if (dragged.nextElementSibling === before) return;
+      container.insertBefore(dragged, before);
+    }
+
+    function wireLineDropZone(linesHost) {
+      const allowLine = (e) => {
+        if (!dragLineEl || dragLineEl.parentElement !== linesHost) return false;
+        e.preventDefault();
+        return true;
+      };
+      linesHost.addEventListener('dragenter', (e) => {
+        allowLine(e);
+      });
+      linesHost.addEventListener('dragover', (e) => {
+        if (!allowLine(e)) return;
+        e.dataTransfer.dropEffect = 'move';
+        lineDragPendingY = e.clientY;
+        if (lineDragRaf) return;
+        lineDragRaf = requestAnimationFrame(() => {
+          lineDragRaf = 0;
+          const y = lineDragPendingY;
+          lineDragPendingY = null;
+          if (y == null || !dragLineEl || dragLineEl.parentElement !== linesHost) return;
+          const after = getDragAfterElement(linesHost, y, '.line-row');
+          moveBeforeSibling(linesHost, dragLineEl, after);
+        });
+      });
+      linesHost.addEventListener('drop', (e) => e.preventDefault());
+    }
+
+    function initBeatListDragReorder() {
+      const blocks = $('blocks');
+      const allowBeat = (e) => {
+        if (!dragBeatEl || dragBeatEl.parentElement !== blocks) return false;
+        e.preventDefault();
+        return true;
+      };
+      blocks.addEventListener('dragenter', (e) => {
+        allowBeat(e);
+      });
+      blocks.addEventListener('dragover', (e) => {
+        if (!allowBeat(e)) return;
+        e.dataTransfer.dropEffect = 'move';
+        beatDragPendingY = e.clientY;
+        if (beatDragRaf) return;
+        beatDragRaf = requestAnimationFrame(() => {
+          beatDragRaf = 0;
+          const y = beatDragPendingY;
+          beatDragPendingY = null;
+          if (y == null || !dragBeatEl || dragBeatEl.parentElement !== blocks) return;
+          const after = getDragAfterElement(blocks, y, '.beat');
+          moveBeforeSibling(blocks, dragBeatEl, after);
+        });
+      });
+      blocks.addEventListener('drop', (e) => e.preventDefault());
+    }
+
+    function attachLineDragHandle(row) {
+      const handle = document.createElement('span');
+      handle.className = 'line-drag-handle';
+      handle.draggable = true;
+      handle.title = 'Drag to reorder this line in the beat';
+      handle.textContent = '⋮⋮';
+      handle.addEventListener('dragstart', (e) => {
+        dragLineEl = row;
+        row.classList.add('dragging-line');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', 'line');
+        try {
+          e.dataTransfer.setDragImage(emptyDragCanvas, 0, 0);
+        } catch {
+          /* ignore */
+        }
+      });
+      handle.addEventListener('dragend', () => {
+        if (lineDragRaf) {
+          cancelAnimationFrame(lineDragRaf);
+          lineDragRaf = 0;
+        }
+        lineDragPendingY = null;
+        row.classList.remove('dragging-line');
+        dragLineEl = null;
+        saveStateDebounced();
+      });
+      row.insertBefore(handle, row.firstChild);
+    }
+
+    function ensureDialogueAfterCharacterRow(characterRow, linesHost) {
+      const rows = [...linesHost.querySelectorAll('.line-row')];
+      const i = rows.indexOf(characterRow);
+      if (i < 0) return;
+      const next = rows[i + 1];
+      if (next) {
+        const ns = next.querySelector('select');
+        if (ns && ns.value === 'dialogue') return;
+      }
+      const before = characterRow.nextSibling;
+      addLineRow(linesHost, { type: 'dialogue', text: '' }, before);
+    }
+
+    function addLineRow(linesHost, elData, insertBeforeNode = null) {
+      const row = document.createElement('div');
+      row.className = 'line-row';
+
+      const sel = document.createElement('select');
+      for (const key of FIELD_ORDER) {
+        const opt = document.createElement('option');
+        opt.value = key;
+        opt.textContent = FIELD_LABELS[key];
+        sel.appendChild(opt);
+      }
+      sel.value = FIELD_ORDER.includes(elData.type) ? elData.type : 'action';
+      const ta = document.createElement('textarea');
+      ta.value = elData.text || '';
+      ta.placeholder = PLACEHOLDERS[sel.value];
+
+      sel.addEventListener('change', () => {
+        ta.placeholder = PLACEHOLDERS[sel.value] || '';
+        if (sel.value === 'character') {
+          ensureDialogueAfterCharacterRow(row, linesHost);
+        }
+        syncLineTextareaAutosize(ta, sel);
+        saveStateDebounced();
+      });
+
+      ta.addEventListener('input', () => {
+        syncLineTextareaAutosize(ta, sel);
+        saveStateDebounced();
+      });
+      ta.addEventListener('paste', () => {
+        requestAnimationFrame(() => {
+          syncLineTextareaAutosize(ta, sel);
+          saveStateDebounced();
+        });
+      });
+
+      const rowActions = document.createElement('div');
+      rowActions.className = 'line-row-actions';
+      const rm = document.createElement('button');
+      rm.type = 'button';
+      rm.className = 'icon-btn danger line-remove-icon';
+      rm.setAttribute('aria-label', 'Remove this line from the beat');
+      rm.title = 'Remove this line from the beat';
+      rm.innerHTML = ICON_REMOVE_LINE_SVG;
+      rm.addEventListener('click', () => {
+        const rows = [...linesHost.querySelectorAll('.line-row')];
+        if (rows.length <= 1) {
+          ta.value = '';
+          syncLineTextareaAutosize(ta, sel);
+          saveStateDebounced();
+          return;
+        }
+        row.remove();
+        saveStateDebounced();
+      });
+      rowActions.appendChild(rm);
+
+      row.appendChild(sel);
+      row.appendChild(ta);
+      row.appendChild(rowActions);
+      attachLineDragHandle(row);
+      if (insertBeforeNode != null) {
+        linesHost.insertBefore(row, insertBeforeNode);
+      } else {
+        linesHost.appendChild(row);
+      }
+      scheduleLineTextareaAutosize(ta, sel);
+      return row;
+    }
+
+    function addBeat(data) {
+      const d = normalizeBeat(data != null ? data : emptyBeat());
+      const host = $('blocks');
+      const beat = document.createElement('div');
+      beat.className = 'beat';
+
+      const beatHandle = document.createElement('span');
+      beatHandle.className = 'beat-drag-handle';
+      beatHandle.draggable = true;
+      beatHandle.title = 'Drag to reorder this beat in the script';
+      beatHandle.textContent = '⋮⋮';
+      beatHandle.addEventListener('dragstart', (e) => {
+        dragBeatEl = beat;
+        beat.classList.add('dragging-beat');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', 'beat');
+        try {
+          e.dataTransfer.setDragImage(emptyDragCanvas, 0, 0);
+        } catch {
+          /* ignore */
+        }
+      });
+      beatHandle.addEventListener('dragend', () => {
+        if (beatDragRaf) {
+          cancelAnimationFrame(beatDragRaf);
+          beatDragRaf = 0;
+        }
+        beatDragPendingY = null;
+        beat.classList.remove('dragging-beat');
+        dragBeatEl = null;
+        saveStateDebounced();
+      });
+
+      const column = document.createElement('div');
+      column.className = 'beat-column';
+
+      const summaryBar = document.createElement('div');
+      summaryBar.className = 'beat-summary-bar';
+      summaryBar.setAttribute('role', 'button');
+      summaryBar.setAttribute('tabindex', '-1');
+      const summaryChevron = document.createElement('span');
+      summaryChevron.className = 'beat-summary-chevron';
+      summaryChevron.setAttribute('aria-hidden', 'true');
+      summaryChevron.textContent = '▶';
+      const summaryText = document.createElement('span');
+      summaryText.className = 'beat-summary';
+      summaryBar.appendChild(summaryChevron);
+      summaryBar.appendChild(summaryText);
+
+      function expandThisBeat() {
+        collapseAllBeatsExcept(beat);
+        beat.classList.remove('collapsed');
+        summaryBar.setAttribute('tabindex', '-1');
+        requestAnimationFrame(() => syncAllLineTextareas());
+      }
+
+      summaryBar.addEventListener('click', expandThisBeat);
+      summaryBar.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          expandThisBeat();
+        }
+      });
+
+      const body = document.createElement('div');
+      body.className = 'beat-body';
+
+      const linesHost = document.createElement('div');
+      linesHost.className = 'beat-lines';
+
+      const toolbar = document.createElement('div');
+      toolbar.className = 'beat-lines-toolbar';
+      const collapseBeatBtn = document.createElement('button');
+      collapseBeatBtn.type = 'button';
+      collapseBeatBtn.className = 'beat-collapse-btn';
+      collapseBeatBtn.setAttribute('aria-label', 'Collapse this beat to a summary row');
+      collapseBeatBtn.title = 'Collapse this beat to a summary row';
+      collapseBeatBtn.textContent = '▼';
+      collapseBeatBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        beat.classList.add('collapsed');
+        summaryBar.setAttribute('tabindex', '0');
+        updateBeatSummary(beat);
+      });
+      const addLineBtn = document.createElement('button');
+      addLineBtn.type = 'button';
+      addLineBtn.className = 'line-add-btn';
+      addLineBtn.textContent = '+ Add line';
+      addLineBtn.addEventListener('click', () => {
+        addLineRow(linesHost, { type: 'dialogue', text: '' });
+        saveStateDebounced();
+      });
+      toolbar.appendChild(collapseBeatBtn);
+      toolbar.appendChild(addLineBtn);
+
+      body.appendChild(toolbar);
+      body.appendChild(linesHost);
+
+      for (const el of d.elements) {
+        addLineRow(linesHost, el);
+      }
+
+      wireLineDropZone(linesHost);
+
+      column.appendChild(summaryBar);
+      column.appendChild(body);
+
+      const actions = document.createElement('div');
+      actions.className = 'beat-actions';
+      const del = document.createElement('button');
+      del.type = 'button';
+      del.className = 'icon-btn danger beat-remove-icon';
+      del.setAttribute('aria-label', 'Remove this beat from the script');
+      del.title = 'Remove this beat from the script';
+      del.innerHTML = ICON_REMOVE_BEAT_SVG;
+      del.addEventListener('click', () => {
+        beat.remove();
+        saveStateDebounced();
+      });
+      actions.appendChild(del);
+
+      beat.appendChild(beatHandle);
+      beat.appendChild(column);
+      beat.appendChild(actions);
+      host.appendChild(beat);
+      updateBeatSummary(beat);
+    }
+
+    let saveTimer;
+    let lineTaResizeTimer;
+    let previewTimer;
+    let previewObjectUrl = null;
+    let previewGen = 0;
+
+    window.addEventListener('resize', () => {
+      clearTimeout(lineTaResizeTimer);
+      lineTaResizeTimer = setTimeout(() => syncAllLineTextareas(), 120);
+    });
+
+    function schedulePreviewRefresh() {
+      if (!previewVisible) return;
+      clearTimeout(previewTimer);
+      previewTimer = setTimeout(() => refreshPreview(), 900);
+    }
+
+    function setPreviewVisible(on) {
+      previewVisible = on;
+      const split = $('appSplit');
+      const pane = $('previewPane');
+      const btn = $('btnTogglePreview');
+      const ph = $('previewPlaceholder');
+      if (split) split.classList.toggle('preview-off', !on);
+      if (pane) pane.classList.toggle('preview-off', !on);
+      if (btn) {
+        btn.classList.toggle('preview-active', on);
+        btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+        const t = on ? 'Hide the PDF preview panel' : 'Show the PDF preview panel';
+        btn.title = t;
+        btn.setAttribute('aria-label', t);
+      }
+      if (!on) {
+        if (ph) {
+          ph.classList.remove('hidden');
+          ph.textContent = 'Preview is closed. Click Preview to generate a PDF.';
+        }
+        if (previewObjectUrl) {
+          URL.revokeObjectURL(previewObjectUrl);
+          previewObjectUrl = null;
+        }
+        const iframe = $('pdfPreview');
+        if (iframe) iframe.removeAttribute('src');
+      } else if (ph) {
+        ph.classList.remove('hidden');
+        ph.textContent = 'Updating preview…';
+      }
+      if (on) refreshPreview();
+    }
+
+    async function refreshPreview() {
+      if (!previewVisible) return;
+      const gen = ++previewGen;
+      const ph = $('previewPlaceholder');
+      const iframe = $('pdfPreview');
+      ph.classList.remove('hidden');
+      ph.textContent = 'Updating preview…';
+      try {
+        const body = {
+          title: $('title').value.trim() || 'Untitled',
+          author: $('author').value.trim(),
+          blocks: collectBlocks(),
+        };
+        const urls = screenplayApiCandidates('/api/export-pdf');
+        let res = null;
+        for (const url of urls) {
+          res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+          });
+          if (res.ok || res.status !== 404) break;
+        }
+        if (gen !== previewGen) return;
+        if (!res || !res.ok) {
+          let detail = res ? res.statusText : 'No response';
+          try {
+            const j = res && (await res.json());
+            if (j && j.detail) detail = typeof j.detail === 'string' ? j.detail : JSON.stringify(j.detail);
+          } catch { /* ignore */ }
+          throw new Error(detail);
+        }
+        const blob = await res.blob();
+        if (gen !== previewGen) return;
+        if (previewObjectUrl) URL.revokeObjectURL(previewObjectUrl);
+        previewObjectUrl = URL.createObjectURL(blob);
+        iframe.src = previewObjectUrl;
+        ph.classList.add('hidden');
+      } catch (e) {
+        if (gen !== previewGen) return;
+        ph.textContent = 'Preview unavailable. ' + (e.message || String(e));
+        ph.classList.remove('hidden');
+        iframe.removeAttribute('src');
+      }
+    }
+
+    function saveStateDebounced() {
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(() => {
+        saveState();
+        schedulePreviewRefresh();
+        updateMetaSummary();
+        setStatus('Saved.', 'ok');
+        clearTimeout(saveTimer);
+        saveTimer = setTimeout(() => setStatus(''), 1200);
+      }, 400);
+    }
+
+    const DEFAULT_BEATS = [emptyBeat()];
+
+    function updateMetaSummary() {
+      const el = $('metaSummary');
+      if (!el) return;
+      const t = ($('title').value || '').trim() || 'Untitled';
+      const a = ($('author').value || '').trim();
+      el.textContent = a ? `${t} · ${a}` : t;
+    }
+
+    function renderBeatsOnly(beats) {
+      $('blocks').innerHTML = '';
+      const list = beats.map((b) => normalizeBeat(b));
+      for (const b of list) addBeat(b);
+      beatsSnapshot = collectBeats();
+      const all = [...$('blocks').querySelectorAll('.beat')];
+      if (all.length > 1) {
+        for (let i = 1; i < all.length; i++) {
+          const be = all[i];
+          be.classList.add('collapsed');
+          const bar = be.querySelector('.beat-summary-bar');
+          if (bar) bar.setAttribute('tabindex', '0');
+          updateBeatSummary(be);
+        }
+      }
+      if (all.length) {
+        const first = all[0];
+        first.classList.remove('collapsed');
+        const fbar = first.querySelector('.beat-summary-bar');
+        if (fbar) fbar.setAttribute('tabindex', '-1');
+      }
+      requestAnimationFrame(() => {
+        syncAllLineTextareas();
+        requestAnimationFrame(syncAllLineTextareas);
+      });
+    }
+
+    function applyImportedMeta(title, author) {
+      $('title').value = title || '';
+      $('author').value = author || '';
+      updateMetaSummary();
+    }
+
+    function renderState(title, author, beats) {
+      applyImportedMeta(title, author);
+      renderBeatsOnly(beats);
+    }
+
+    function snapshotDraftPayload() {
+      return {
+        title: $('title').value,
+        author: $('author').value,
+        beats: collectBeatsForSave(),
+        editorEntered: !!editorEnteredFlag,
+      };
+    }
+
+    function applyServerDraft(draft) {
+      if (!draft || typeof draft !== 'object') return;
+      const title = draft.title != null ? String(draft.title) : '';
+      const author = draft.author != null ? String(draft.author) : '';
+      $('title').value = title;
+      $('author').value = author;
+      const beats =
+        Array.isArray(draft.beats) && draft.beats.length
+          ? draft.beats.map((b) => normalizeBeat(b))
+          : DEFAULT_BEATS.map((b) => normalizeBeat(b));
+      beatsSnapshot = beats;
+      editorEnteredFlag = draft.editorEntered !== false;
+      renderBeatsOnly(beats);
+      updateMetaSummary();
+      const savedAt = draft.savedAt || new Date().toISOString();
+      try {
+        localStorage.setItem(
+          draftStorageKey(),
+          JSON.stringify({
+            title,
+            author,
+            beats,
+            editorEntered: editorEnteredFlag,
+            savedAt,
+          }),
+        );
+      } catch { /* ignore */ }
+      updateRegistryMeta(projectId, title.trim() || 'Untitled', savedAt);
+    }
+
+    function syncMetaFromStorage() {
+      const s = loadState();
+      if (!s) return;
+      $('title').value = s.title || '';
+      $('author').value = s.author || '';
+      updateMetaSummary();
+    }
+
+    async function restoreWithMerge() {
+      ensureProjectInRegistry(projectId);
+      const meta = $('metaSummary');
+      if (meta) meta.href = screenplayMetaHref(projectId);
+
+      const local = loadState();
+      const remote = await fetchDraftFromServer();
+      let chosen = pickNewerDraft(local, remote);
+      if (chosen) {
+        try {
+          localStorage.setItem(draftStorageKey(), JSON.stringify(chosen));
+        } catch { /* ignore */ }
+      } else {
+        chosen = local;
+      }
+
+      let beats = null;
+      let title = '';
+      let author = '';
+      if (chosen) {
+        title = chosen.title || '';
+        author = chosen.author || '';
+        if (Array.isArray(chosen.beats) && chosen.beats.length) beats = chosen.beats;
+      }
+      if (!beats || !beats.length) beats = DEFAULT_BEATS.map((b) => normalizeBeat(b));
+      beatsSnapshot = beats.map((b) => normalizeBeat(b));
+      editorEnteredFlag = true;
+      $('title').value = title;
+      $('author').value = author;
+      renderBeatsOnly(beatsSnapshot);
+      updateMetaSummary();
+    }
+
+    async function postRestoreVersion(versionId) {
+      const urls = screenplayApiCandidates('/api/draft/restore-version').map((u) => {
+        const sep = u.includes('?') ? '&' : '?';
+        return `${u}${sep}project_id=${encodeURIComponent(projectId)}&version_id=${encodeURIComponent(versionId)}`;
+      });
+      for (const url of urls) {
+        const res = await fetch(url, { method: 'POST' });
+        if (res.ok) return res.json();
+        const j = await res.json().catch(() => ({}));
+        if (res.status !== 404) {
+          throw new Error(typeof j.detail === 'string' ? j.detail : JSON.stringify(j.detail || res.statusText));
+        }
+      }
+      throw new Error('Could not restore version.');
+    }
+
+    async function confirmRestoreVersion(versionId, dlg) {
+      if (
+        !window.confirm(
+          'Replace the current draft with this version? Your working copy will match this snapshot; autosave will continue from there.',
+        )
+      ) {
+        return;
+      }
+      try {
+        const draft = await postRestoreVersion(versionId);
+        applyServerDraft(draft);
+        if (dlg && dlg.close) dlg.close();
+        schedulePreviewRefresh();
+        setStatus('Restored version.', 'ok');
+        setTimeout(() => setStatus(''), 2200);
+      } catch (e) {
+        setStatus(String(e.message || e), 'err');
+      }
+    }
+
+    async function saveExplicitVersion() {
+      saveState();
+      const body = { ...snapshotDraftPayload(), label: '' };
+      try {
+        const urls = withProjectQuery(screenplayApiCandidates('/api/draft/version'));
+        let lastErr = 'Could not save version.';
+        for (const url of urls) {
+          const res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+          });
+          if (res.ok) {
+            const j = await res.json().catch(() => ({}));
+            const lab = j && j.label ? String(j.label) : '';
+            setStatus(lab ? `Saved ${lab}.` : 'Version saved.', 'ok');
+            setTimeout(() => setStatus(''), 2000);
+            return;
+          }
+          const j = await res.json().catch(() => ({}));
+          lastErr = typeof j.detail === 'string' ? j.detail : JSON.stringify(j.detail || res.statusText);
+          if (res.status !== 404) break;
+        }
+        throw new Error(lastErr);
+      } catch (e) {
+        setStatus(String(e.message || e), 'err');
+      }
+    }
+
+    async function openVersionsDialog() {
+      const dlg = $('versionsDialog');
+      const ul = $('versionsList');
+      if (!dlg || !ul) return;
+      ul.innerHTML = '';
+      try {
+        const urls = withProjectQuery(screenplayApiCandidates('/api/draft/versions'));
+        let res = null;
+        for (const url of urls) {
+          res = await fetch(url);
+          if (res.ok) break;
+          if (res.status !== 404) break;
+        }
+        if (!res || !res.ok) {
+          const j = res && (await res.json().catch(() => ({})));
+          const msg = j.detail || (res && res.statusText) || 'Failed to list versions';
+          throw new Error(typeof msg === 'string' ? msg : JSON.stringify(msg));
+        }
+        const data = await res.json();
+        const versions = Array.isArray(data.versions) ? data.versions : [];
+        if (!versions.length) {
+          const li = document.createElement('li');
+          li.className = 'versions-empty';
+          li.textContent = 'No saved versions yet. Use “Save version”.';
+          ul.appendChild(li);
+        } else {
+          for (const v of versions) {
+            const li = document.createElement('li');
+            const meta = document.createElement('div');
+            meta.className = 'v-meta';
+            const strong = document.createElement('strong');
+            strong.textContent = v.savedAt ? new Date(v.savedAt).toLocaleString() : 'Unknown date';
+            meta.appendChild(strong);
+            const vl = (v.label || '').trim();
+            if (vl) {
+              const s1 = document.createElement('span');
+              s1.textContent = vl;
+              s1.style.display = 'block';
+              meta.appendChild(s1);
+            }
+            const tt = (v.title || '').trim();
+            if (tt && tt !== vl) {
+              const s2 = document.createElement('span');
+              s2.textContent = tt.length > 100 ? `${tt.slice(0, 97)}…` : tt;
+              s2.style.display = 'block';
+              s2.style.opacity = '0.9';
+              meta.appendChild(s2);
+            }
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'v-restore';
+            btn.textContent = 'Restore';
+            const when = v.savedAt ? new Date(v.savedAt).toLocaleString() : '';
+            const restoreTip = when
+              ? `Replace the current draft with the saved version from ${when}`
+              : 'Replace the current draft with this saved version';
+            btn.setAttribute('aria-label', restoreTip);
+            btn.title = restoreTip;
+            btn.addEventListener('click', () => {
+              void confirmRestoreVersion(v.versionId, dlg);
+            });
+            li.appendChild(meta);
+            li.appendChild(btn);
+            ul.appendChild(li);
+          }
+        }
+        if (dlg.showModal) dlg.showModal();
+      } catch (e) {
+        setStatus(String(e.message || e), 'err');
+      }
+    }
+
+    async function exportPdf() {
+      const btn = $('btnPdf');
+      btn.disabled = true;
+      setStatus('Building PDF…', '');
+      try {
+        const body = {
+          title: $('title').value.trim() || 'Untitled',
+          author: $('author').value.trim(),
+          blocks: collectBlocks(),
+        };
+        const urls = screenplayApiCandidates('/api/export-pdf');
+        let res = null;
+        for (const url of urls) {
+          res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+          });
+          if (res.ok || res.status !== 404) break;
+        }
+        if (!res || !res.ok) {
+          let detail = res ? res.statusText : 'No response';
+          try {
+            const j = res && (await res.json());
+            if (j && j.detail) detail = typeof j.detail === 'string' ? j.detail : JSON.stringify(j.detail);
+          } catch { /* ignore */ }
+          throw new Error(detail);
+        }
+        const blob = await res.blob();
+        const cd = res.headers.get('Content-Disposition') || '';
+        const m = cd.match(/filename="([^"]+)"/);
+        const name = m ? m[1] : 'scriptbox.pdf';
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = name;
+        a.click();
+        URL.revokeObjectURL(url);
+        setStatus('Download started.', 'ok');
+      } catch (e) {
+        setStatus(String(e.message || e), 'err');
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    $('btnTogglePreview').addEventListener('click', () => {
+      setPreviewVisible(!previewVisible);
+    });
+
+    $('btnPdf').addEventListener('click', exportPdf);
+    $('btnSaveVersion').addEventListener('click', () => {
+      void saveExplicitVersion();
+    });
+    $('btnVersions').addEventListener('click', () => {
+      void openVersionsDialog();
+    });
+    $('btnVersionsClose').addEventListener('click', () => {
+      const d = $('versionsDialog');
+      if (d && d.close) d.close();
+    });
+    function addBeatAtEnd() {
+      const blocks = $('blocks');
+      if (blocks) {
+        for (const b of blocks.querySelectorAll('.beat')) {
+          b.classList.add('collapsed');
+          const bar = b.querySelector('.beat-summary-bar');
+          if (bar) bar.setAttribute('tabindex', '0');
+          updateBeatSummary(b);
+        }
+      }
+      addBeat(emptyBeat());
+      const all = $('blocks')?.querySelectorAll('.beat');
+      let newBeat = null;
+      if (all?.length) {
+        const last = all[all.length - 1];
+        newBeat = last;
+        last.classList.remove('collapsed');
+        const lb = last.querySelector('.beat-summary-bar');
+        if (lb) lb.setAttribute('tabindex', '-1');
+        requestAnimationFrame(() => syncAllLineTextareas());
+      }
+      saveStateDebounced();
+      return newBeat;
+    }
+
+    function scrollToBeatIfNeeded(beatEl) {
+      if (!beatEl) return;
+      try {
+        beatEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      } catch {
+        beatEl.scrollIntoView(true);
+      }
+    }
+
+    $('btnAddBeatToolbar').addEventListener('click', () => {
+      const el = addBeatAtEnd();
+      requestAnimationFrame(() => scrollToBeatIfNeeded(el));
+    });
+    async function resetAll() {
+      if (!window.confirm('Delete this project and all script content? This cannot be undone.')) {
+        return;
+      }
+      await deleteDraftOnServer();
+      try {
+        localStorage.removeItem(draftStorageKey());
+      } catch { /* ignore */ }
+      removeProjectFromRegistry(projectId);
+      setPreviewVisible(false);
+      location.href = screenplayListHref();
+    }
+    $('btnReset').addEventListener('click', () => {
+      void resetAll();
+    });
+
+    async function bootEditor() {
+      setLoading(true);
+      try {
+        initBeatListDragReorder();
+        setPreviewVisible(false);
+        await restoreWithMerge();
+        saveState();
+      } finally {
+        setLoading(false);
+      }
+      window.addEventListener('pageshow', () => {
+        syncMetaFromStorage();
+      });
+    }
+    void bootEditor();
+
+    }
+  </script>
+</body>
+</html>

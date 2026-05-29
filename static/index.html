@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Projects · ScriptBox</title>
+  <style>
+    :root {
+      --bg: #121418;
+      --panel: #1c2028;
+      --border: #2a3140;
+      --text: #e8eaef;
+      --muted: #8b93a6;
+      --accent: #6b9fff;
+      --ok: #5ecf8e;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.45;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      padding: 1rem 1.25rem 0;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.75rem 1rem;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    header h1 {
+      margin: 0;
+      font-size: 1.15rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+    .header-actions {
+      margin-left: auto;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      align-items: center;
+    }
+    button, .btn-link {
+      cursor: pointer;
+      border: none;
+      border-radius: 8px;
+      padding: 0.45rem 0.85rem;
+      font-size: 0.85rem;
+      font-weight: 500;
+      background: var(--border);
+      color: var(--text);
+      text-decoration: none;
+      display: inline-block;
+    }
+    button.primary {
+      background: var(--accent);
+      color: #0a0c10;
+    }
+    button.primary:disabled { opacity: 0.45; cursor: not-allowed; }
+    button.danger {
+      background: #4a2a2a;
+      color: #ffb4b4;
+    }
+    .screen {
+      flex: 1;
+      padding: 1rem 1.25rem 2rem;
+      border-top: 1px solid var(--border);
+      max-width: 720px;
+      width: 100%;
+      margin: 0 auto;
+    }
+    .view.hidden { display: none !important; }
+    .project-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.65rem;
+    }
+    .project-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      grid-template-rows: auto auto;
+      gap: 0.35rem 0.75rem;
+      align-items: center;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.75rem 1rem;
+    }
+    .project-row .project-title {
+      grid-column: 1;
+      grid-row: 1;
+      min-width: 0;
+      width: 100%;
+      margin: 0;
+      padding: 0;
+      border: none;
+      background: none;
+      font: inherit;
+      font-weight: 600;
+      font-size: 0.95rem;
+      color: var(--text);
+      text-align: left;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+    .project-row .project-title:hover {
+      color: var(--accent);
+    }
+    .project-row .project-title:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+    .project-row .meta {
+      grid-column: 1 / -1;
+      grid-row: 2;
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+    .project-actions {
+      grid-column: 2;
+      grid-row: 1;
+      display: flex;
+      flex-wrap: nowrap;
+      gap: 0.35rem;
+      align-items: center;
+      justify-self: end;
+    }
+    .icon-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 2.35rem;
+      height: 2.35rem;
+      padding: 0;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      background: var(--border);
+      color: var(--text);
+      flex-shrink: 0;
+    }
+    .icon-btn:hover {
+      filter: brightness(1.12);
+    }
+    .icon-btn svg {
+      width: 1.1rem;
+      height: 1.1rem;
+      flex-shrink: 0;
+    }
+    .icon-btn.primary {
+      background: var(--accent);
+      color: #0a0c10;
+    }
+    .icon-btn.danger {
+      background: #4a2a2a;
+      color: #ffb4b4;
+    }
+    .empty-hint {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin: 0.5rem 0 1rem;
+    }
+    .meta-form {
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+      max-width: 440px;
+    }
+    .meta-form label {
+      display: block;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+    .meta-form input[type="text"] {
+      display: block;
+      width: 100%;
+      margin-top: 0.35rem;
+      padding: 0.55rem 0.65rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: #141820;
+      color: var(--text);
+      font-size: 1rem;
+    }
+    .meta-form input[type="text"]:focus {
+      outline: 2px solid var(--accent);
+      border-color: transparent;
+    }
+    .back-row {
+      margin-bottom: 1rem;
+    }
+    #status {
+      padding: 0 1.25rem 0.75rem;
+      font-size: 0.85rem;
+      color: var(--muted);
+      min-height: 1.25rem;
+    }
+    #status.ok { color: var(--ok); }
+    #status.err { color: #ff8a8a; }
+    .loading-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+      background: rgba(10, 12, 16, 0.78);
+      backdrop-filter: blur(5px);
+    }
+    .loading-overlay.hidden {
+      display: none !important;
+      pointer-events: none;
+    }
+    .loading-spinner {
+      width: 42px;
+      height: 42px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: loading-spin 0.72s linear infinite;
+    }
+    .loading-label {
+      font-size: 0.88rem;
+      color: var(--muted);
+    }
+    @keyframes loading-spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div id="loadingOverlay" class="loading-overlay" role="status" aria-live="polite" aria-busy="true">
+    <div class="loading-spinner" aria-hidden="true"></div>
+    <span class="loading-label">Loading…</span>
+  </div>
+  <header>
+    <h1>ScriptBox</h1>
+    <div class="header-actions" id="headerActions">
+      <button type="button" class="primary" id="btnNewProject">New project</button>
+    </div>
+  </header>
+
+  <div id="viewList" class="screen view">
+    <p class="empty-hint" id="listHint">Open a project to edit, or create a new one.</p>
+    <ul class="project-list" id="projectList"></ul>
+  </div>
+
+  <div id="viewMeta" class="screen view hidden">
+    <div class="back-row">
+      <button type="button" id="btnBackToList">← All projects</button>
+    </div>
+    <div class="meta-form">
+      <label>Title
+        <input type="text" id="title" placeholder="Working title" autocomplete="off" />
+      </label>
+      <label>Author (optional)
+        <input type="text" id="author" placeholder="Your name" autocomplete="off" />
+      </label>
+      <input type="file" id="pdfFileMeta" hidden accept="application/pdf,.pdf" />
+      <button type="button" id="btnImportPdfMeta">Import PDF</button>
+      <button type="button" class="primary" id="btnContinue">Open script editor</button>
+    </div>
+  </div>
+
+  <div id="status" aria-live="polite"></div>
+
+  <script>
+    const LEGACY_KEYS = ['screenplay-draft-v4', 'screenplay-draft-v3', 'screenplay-draft-v2', 'screenplay-draft-v1'];
+    const PROJECTS_REGISTRY_KEY = 'screenplay-projects-v1';
+    const $ = (id) => document.getElementById(id);
+
+    function setLoading(on) {
+      const el = $('loadingOverlay');
+      if (!el) return;
+      el.classList.toggle('hidden', !on);
+      el.setAttribute('aria-busy', on ? 'true' : 'false');
+    }
+
+    function projectStorageKey(id) {
+      return `screenplay-project-v1-${id}`;
+    }
+
+    function screenplayUrlPath(apiPath) {
+      const p = window.location.pathname || '';
+      const underScreenplay = p === '/screenplay' || p.startsWith('/screenplay/');
+      const prefix = underScreenplay ? '/screenplay' : '';
+      const path = apiPath.startsWith('/') ? apiPath : `/${apiPath}`;
+      return prefix + path;
+    }
+
+    function screenplayApiCandidates(apiPath) {
+      const primary = screenplayUrlPath(apiPath);
+      const alt = primary.startsWith('/screenplay')
+        ? apiPath.startsWith('/') ? apiPath : `/${apiPath}`
+        : `/screenplay${apiPath.startsWith('/') ? apiPath : `/${apiPath}`}`;
+      return primary === alt ? [primary] : [primary, alt];
+    }
+
+    /** Canonical page URLs (avoid relative “edit” resolving to /static/edit when opened from /static/…). */
+    function screenplayListHref() {
+      const p = window.location.pathname || '';
+      if (p === '/screenplay' || p.startsWith('/screenplay/')) return '/screenplay/';
+      return '/';
+    }
+
+    function screenplayMetaHref(projectId) {
+      return `${screenplayListHref()}?p=${encodeURIComponent(projectId)}`;
+    }
+
+    function screenplayEditorHref(projectId) {
+      const p = window.location.pathname || '';
+      if (p === '/screenplay' || p.startsWith('/screenplay/')) {
+        return `/screenplay/edit?p=${encodeURIComponent(projectId)}`;
+      }
+      return `/edit?p=${encodeURIComponent(projectId)}`;
+    }
+
+    function withProjectQuery(urls, projectId) {
+      return urls.map((u) => {
+        const sep = u.includes('?') ? '&' : '?';
+        return `${u}${sep}project_id=${encodeURIComponent(projectId)}`;
+      });
+    }
+
+    function parseSavedAt(iso) {
+      if (!iso || typeof iso !== 'string') return 0;
+      const t = Date.parse(iso);
+      return Number.isNaN(t) ? 0 : t;
+    }
+
+    function pickNewerDraft(local, remote) {
+      if (!remote) return local;
+      if (!local) return remote;
+      const tr = parseSavedAt(remote.savedAt);
+      const tl = parseSavedAt(local.savedAt);
+      if (tr === 0 && tl === 0) return local;
+      return tr >= tl ? remote : local;
+    }
+
+    async function fetchDraftFromServer(projectId) {
+      try {
+        const urls = withProjectQuery(screenplayApiCandidates('/api/draft'), projectId);
+        for (const url of urls) {
+          const res = await fetch(url);
+          if (res.ok) return await res.json();
+          if (res.status !== 404) break;
+        }
+      } catch { /* offline */ }
+      return null;
+    }
+
+    async function fetchDraftsIndex() {
+      try {
+        const urls = screenplayApiCandidates('/api/drafts');
+        for (const url of urls) {
+          const res = await fetch(url);
+          if (res.ok) {
+            const j = await res.json();
+            return Array.isArray(j.drafts) ? j.drafts : [];
+          }
+          if (res.status !== 404) break;
+        }
+      } catch { /* ignore */ }
+      return [];
+    }
+
+    async function pushDraftToServer(projectId, state) {
+      try {
+        const urls = withProjectQuery(screenplayApiCandidates('/api/draft'), projectId);
+        const body = {
+          title: state.title != null ? String(state.title) : '',
+          author: state.author != null ? String(state.author) : '',
+          beats: Array.isArray(state.beats) ? state.beats : [],
+          editorEntered: !!state.editorEntered,
+        };
+        for (const url of urls) {
+          const res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+          });
+          if (res.ok) {
+            const back = await res.json();
+            if (back && back.savedAt) {
+              try {
+                const raw = localStorage.getItem(projectStorageKey(projectId));
+                if (raw) {
+                  const cur = JSON.parse(raw);
+                  cur.savedAt = back.savedAt;
+                  localStorage.setItem(projectStorageKey(projectId), JSON.stringify(cur));
+                }
+              } catch { /* ignore */ }
+            }
+            return;
+          }
+          if (res.status !== 404) break;
+        }
+      } catch { /* ignore */ }
+    }
+
+    const FIELD_ORDER = ['scene', 'action', 'character', 'parenthetical', 'dialogue', 'transition'];
+
+    function defaultBeats() {
+      return [
+        {
+          elements: [
+            { type: 'scene', text: '' },
+            { type: 'action', text: '' },
+            { type: 'character', text: '' },
+            { type: 'dialogue', text: '' },
+          ],
+        },
+      ];
+    }
+
+    /** Legacy six-field beat or new { elements } → canonical { elements } (matches editor). */
+    function normalizeBeat(b) {
+      if (b && Array.isArray(b.elements) && b.elements.length) {
+        return {
+          elements: b.elements.map((e) => {
+            const type = FIELD_ORDER.includes(e.type) ? e.type : 'action';
+            return { type, text: e.text != null ? String(e.text) : '' };
+          }),
+        };
+      }
+      const elements = [];
+      if (b) {
+        for (const key of FIELD_ORDER) {
+          const raw = b[key];
+          if (raw != null && String(raw).trim()) {
+            elements.push({ type: key, text: String(raw) });
+          }
+        }
+      }
+      if (!elements.length) {
+        return {
+          elements: [
+            { type: 'scene', text: '' },
+            { type: 'action', text: '' },
+            { type: 'character', text: '' },
+            { type: 'dialogue', text: '' },
+          ],
+        };
+      }
+      return { elements };
+    }
+
+    function migrateLegacyBlocks(old) {
+      return {
+        title: old.title || '',
+        author: old.author || '',
+        editorEntered: true,
+        beats: old.blocks.map((b) => {
+          const t = (b.type || 'action').toLowerCase();
+          const type = FIELD_ORDER.includes(t) ? t : 'action';
+          return { elements: [{ type, text: b.text || '' }] };
+        }),
+      };
+    }
+
+    function loadRegistry() {
+      try {
+        const r = JSON.parse(localStorage.getItem(PROJECTS_REGISTRY_KEY) || '{}');
+        return Array.isArray(r.projects) ? r : { projects: [] };
+      } catch {
+        return { projects: [] };
+      }
+    }
+
+    function saveRegistry(reg) {
+      try {
+        localStorage.setItem(PROJECTS_REGISTRY_KEY, JSON.stringify(reg));
+      } catch { /* ignore */ }
+    }
+
+    function ensureProjectInRegistry(id, title, updatedAt) {
+      const reg = loadRegistry();
+      if (!reg.projects.some((p) => p.id === id)) {
+        reg.projects.push({
+          id,
+          title: title || 'Untitled',
+          updatedAt: updatedAt || new Date().toISOString(),
+        });
+        saveRegistry(reg);
+      }
+    }
+
+    function updateRegistryMeta(id, title, updatedAt) {
+      const reg = loadRegistry();
+      const i = reg.projects.findIndex((p) => p.id === id);
+      if (i >= 0) {
+        reg.projects[i].title = title || reg.projects[i].title || 'Untitled';
+        reg.projects[i].updatedAt = updatedAt || new Date().toISOString();
+      } else {
+        reg.projects.push({ id, title: title || 'Untitled', updatedAt: updatedAt || new Date().toISOString() });
+      }
+      saveRegistry(reg);
+    }
+
+    function removeProject(id) {
+      const reg = loadRegistry();
+      reg.projects = reg.projects.filter((p) => p.id !== id);
+      saveRegistry(reg);
+      try {
+        localStorage.removeItem(projectStorageKey(id));
+      } catch { /* ignore */ }
+    }
+
+    function migrateGlobalDraftToProject() {
+      if (loadRegistry().projects.length > 0) return;
+      for (const key of LEGACY_KEYS) {
+        const raw = localStorage.getItem(key);
+        if (!raw) continue;
+        try {
+          let data = JSON.parse(raw);
+          if (key === 'screenplay-draft-v1' && data && Array.isArray(data.blocks)) {
+            data = migrateLegacyBlocks(data);
+          }
+          if (!data || !Array.isArray(data.beats)) continue;
+          const id = crypto.randomUUID();
+          const now = data.savedAt || new Date().toISOString();
+          localStorage.setItem(
+            projectStorageKey(id),
+            JSON.stringify({ ...data, savedAt: now })
+          );
+          saveRegistry({
+            projects: [
+              {
+                id,
+                title: (data.title || 'Untitled').slice(0, 120),
+                updatedAt: now,
+              },
+            ],
+          });
+          for (const k of LEGACY_KEYS) localStorage.removeItem(k);
+          void pushDraftToServer(id, { ...data, savedAt: now, editorEntered: !!data.editorEntered });
+          return;
+        } catch {
+          continue;
+        }
+      }
+    }
+
+    async function mergeRegistryWithServer() {
+      const serverDrafts = await fetchDraftsIndex();
+      const reg = loadRegistry();
+      const ids = new Set(reg.projects.map((p) => p.id));
+      for (const d of serverDrafts) {
+        const pid = d.project_id;
+        if (!pid || ids.has(pid)) continue;
+        reg.projects.push({
+          id: pid,
+          title: d.title || 'Untitled',
+          updatedAt: d.savedAt || new Date().toISOString(),
+        });
+        ids.add(pid);
+      }
+      saveRegistry(reg);
+    }
+
+    function loadProjectState(projectId) {
+      try {
+        const raw = localStorage.getItem(projectStorageKey(projectId));
+        if (raw) return JSON.parse(raw);
+      } catch { /* ignore */ }
+      return null;
+    }
+
+    let detailProjectId = null;
+
+    async function showList() {
+      $('viewList').classList.remove('hidden');
+      $('viewMeta').classList.add('hidden');
+      detailProjectId = null;
+      history.replaceState(null, '', screenplayListHref());
+      setLoading(true);
+      try {
+        await renderProjectList();
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    async function showMetaForProject(projectId) {
+      detailProjectId = projectId;
+      $('viewList').classList.add('hidden');
+      $('viewMeta').classList.remove('hidden');
+      history.replaceState(null, '', screenplayMetaHref(projectId));
+      setLoading(true);
+      try {
+        await restoreMetaMerged(projectId);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    async function restoreMetaMerged(projectId) {
+      const local = loadProjectState(projectId);
+      const remote = await fetchDraftFromServer(projectId);
+      const chosen = pickNewerDraft(local, remote);
+      if (chosen) {
+        try {
+          localStorage.setItem(projectStorageKey(projectId), JSON.stringify(chosen));
+        } catch { /* ignore */ }
+        $('title').value = chosen.title || '';
+        $('author').value = chosen.author || '';
+        updateRegistryMeta(
+          projectId,
+          (chosen.title || '').trim() || 'Untitled',
+          chosen.savedAt || new Date().toISOString()
+        );
+      } else {
+        $('title').value = '';
+        $('author').value = '';
+      }
+    }
+
+    async function importPdfOnMetaPage(file) {
+      if (!detailProjectId) return;
+      const btn = $('btnImportPdfMeta');
+      const st = $('status');
+      btn.disabled = true;
+      st.textContent = 'Importing PDF…';
+      st.className = '';
+      try {
+        const urls = screenplayApiCandidates('/api/import-pdf');
+        let res = null;
+        let data = {};
+        let lastErr = '';
+        for (const url of urls) {
+          const fd = new FormData();
+          fd.append('file', file, file.name);
+          res = await fetch(url, { method: 'POST', body: fd });
+          data = await res.json().catch(() => ({}));
+          if (res.ok) break;
+          lastErr =
+            typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail || res.statusText);
+          if (res.status !== 404) break;
+        }
+        if (!res || !res.ok) {
+          let msg = lastErr || 'Request failed';
+          if (res && res.status === 404) {
+            msg +=
+              ' Install deps: pip install -r webapp/requirements.txt or screenplay/requirements.txt, restart uvicorn.';
+          }
+          throw new Error(msg);
+        }
+        if (!data.beats || !data.beats.length) {
+          throw new Error('No screenplay text found in this PDF.');
+        }
+        const beats = data.beats.map((b) => normalizeBeat(b));
+        const now = new Date().toISOString();
+        const state = {
+          title: data.title || '',
+          author: data.author || '',
+          beats,
+          editorEntered: true,
+          savedAt: now,
+        };
+        try {
+          localStorage.setItem(projectStorageKey(detailProjectId), JSON.stringify(state));
+        } catch { /* ignore */ }
+        $('title').value = state.title || '';
+        $('author').value = state.author || '';
+        updateRegistryMeta(detailProjectId, ($('title').value || '').trim() || 'Untitled', now);
+        await pushDraftToServer(detailProjectId, state);
+        st.textContent = `Imported ${beats.length} beats — open script editor when ready.`;
+        st.className = 'ok';
+      } catch (e) {
+        st.textContent = String(e.message || e);
+        st.className = 'err';
+      } finally {
+        btn.disabled = false;
+        $('pdfFileMeta').value = '';
+      }
+    }
+
+    function saveMetaDraft() {
+      if (!detailProjectId) return;
+      const prev = loadProjectState(detailProjectId) || {};
+      const beats =
+        prev && Array.isArray(prev.beats) && prev.beats.length ? prev.beats : defaultBeats();
+      const savedAt = new Date().toISOString();
+      const state = {
+        ...prev,
+        title: $('title').value,
+        author: $('author').value,
+        beats,
+        savedAt,
+        editorEntered: prev.editorEntered !== false,
+      };
+      try {
+        localStorage.setItem(projectStorageKey(detailProjectId), JSON.stringify(state));
+      } catch { /* ignore */ }
+      updateRegistryMeta(
+        detailProjectId,
+        ($('title').value || '').trim() || 'Untitled',
+        savedAt
+      );
+      void pushDraftToServer(detailProjectId, state);
+    }
+
+    let metaTimer;
+    function saveMetaDebounced() {
+      clearTimeout(metaTimer);
+      metaTimer = setTimeout(saveMetaDraft, 400);
+    }
+
+    async function renderProjectList() {
+      migrateGlobalDraftToProject();
+      await mergeRegistryWithServer();
+      const reg = loadRegistry();
+      const ul = $('projectList');
+      const hint = $('listHint');
+      ul.innerHTML = '';
+      if (!reg.projects.length) {
+        hint.textContent = 'No projects yet. Create one to start writing.';
+        hint.style.display = 'block';
+        return;
+      }
+      hint.style.display = 'none';
+      reg.projects.sort((a, b) => parseSavedAt(b.updatedAt) - parseSavedAt(a.updatedAt));
+      for (const p of reg.projects) {
+        const li = document.createElement('li');
+        li.className = 'project-row';
+        const st = loadProjectState(p.id);
+        const displayTitle = (p.title || st?.title || 'Untitled').trim() || 'Untitled';
+        const when = p.updatedAt ? new Date(p.updatedAt).toLocaleString() : '';
+        li.innerHTML = `
+          <button type="button" class="project-title"></button>
+          <div class="meta"></div>
+          <div class="project-actions"></div>
+        `;
+        const titleBtn = li.querySelector('.project-title');
+        titleBtn.textContent = displayTitle;
+        titleBtn.setAttribute('aria-label', `Open script: ${displayTitle}`);
+        titleBtn.title = 'Open script';
+        titleBtn.addEventListener('click', () => {
+          location.href = screenplayEditorHref(p.id);
+        });
+        li.querySelector('.meta').textContent = when ? `Updated ${when}` : '';
+
+        const actions = li.querySelector('.project-actions');
+
+        const iconTrash =
+          '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>';
+
+        const delBtn = document.createElement('button');
+        delBtn.type = 'button';
+        delBtn.className = 'icon-btn danger';
+        const deleteTip = 'Permanently delete this project and its script';
+        delBtn.setAttribute('aria-label', deleteTip);
+        delBtn.title = deleteTip;
+        delBtn.innerHTML = iconTrash;
+        delBtn.addEventListener('click', async () => {
+          if (!window.confirm(`Delete project “${displayTitle}”? This cannot be undone.`)) return;
+          try {
+            const urls = withProjectQuery(screenplayApiCandidates('/api/draft'), p.id);
+            for (const url of urls) {
+              const res = await fetch(url, { method: 'DELETE' });
+              if (res.ok || res.status !== 404) break;
+            }
+          } catch { /* ignore */ }
+          removeProject(p.id);
+          setLoading(true);
+          try {
+            await renderProjectList();
+          } finally {
+            setLoading(false);
+          }
+        });
+        actions.appendChild(delBtn);
+        ul.appendChild(li);
+      }
+    }
+
+    function createNewProject() {
+      const id = crypto.randomUUID();
+      const now = new Date().toISOString();
+      const state = {
+        title: '',
+        author: '',
+        beats: defaultBeats(),
+        editorEntered: false,
+        savedAt: now,
+      };
+      try {
+        localStorage.setItem(projectStorageKey(id), JSON.stringify(state));
+      } catch (e) {
+        $('status').textContent = 'Could not save (storage full?)';
+        $('status').className = 'err';
+        return;
+      }
+      ensureProjectInRegistry(id, 'Untitled', now);
+      void pushDraftToServer(id, state);
+      location.href = screenplayMetaHref(id);
+    }
+
+    async function routeFromUrl() {
+      try {
+        const p = new URLSearchParams(location.search).get('p');
+        if (p && /^[a-zA-Z0-9\-]{8,64}$/.test(p)) {
+          ensureProjectInRegistry(p, 'Untitled', new Date().toISOString());
+          await showMetaForProject(p);
+        } else {
+          await showList();
+        }
+      } catch {
+        setLoading(false);
+      }
+    }
+
+    $('btnNewProject').addEventListener('click', createNewProject);
+    $('btnBackToList').addEventListener('click', () => {
+      void showList();
+    });
+    $('title').addEventListener('input', saveMetaDebounced);
+    $('author').addEventListener('input', saveMetaDebounced);
+
+    $('btnContinue').addEventListener('click', async () => {
+      if (!detailProjectId) return;
+      saveMetaDraft();
+      await pushDraftToServer(detailProjectId, loadProjectState(detailProjectId));
+      location.href = screenplayEditorHref(detailProjectId);
+    });
+
+    $('btnImportPdfMeta').addEventListener('click', () => {
+      $('pdfFileMeta').click();
+    });
+    $('pdfFileMeta').addEventListener('change', (ev) => {
+      const f = ev.target.files && ev.target.files[0];
+      if (f) void importPdfOnMetaPage(f);
+    });
+
+    void routeFromUrl();
+  </script>
+</body>
+</html>
