@@ -10,21 +10,33 @@ Runs entirely on your machine — no account, no cloud required.
 
 ## Screenshots
 
+### Writing — scene, action, character, dialogue
+
+Each beat supports all standard line types. Pick a type from the dropdown and type directly in the editor.
+
+![Beat editor with scene heading, action, character, and dialogue filled in](docs/readme-assets/beat-editor.png)
+
+### Live preview — formatted screenplay PDF
+
+Toggle preview to see industry-style Courier layout update as you write. Scene headings, action, character cues, parentheticals, dialogue, and transitions are all positioned correctly.
+
+![Editor beside live PDF preview panel](docs/readme-assets/editor-with-preview.png)
+
+![Close-up of the PDF preview pane showing formatted script pages](docs/readme-assets/pdf-preview.png)
+
+### Saving versions
+
+Click the save icon to create a numbered snapshot (`v1`, `v2`, …). A confirmation appears in the toolbar when a version is saved.
+
+![Toolbar showing Saved v3 after creating a version snapshot](docs/readme-assets/save-version-toolbar.png)
+
+Open version history to browse snapshots and restore an older draft.
+
+![Saved versions dialog listing v1 and v2 with Restore buttons](docs/readme-assets/saved-versions.png)
+
 ### Projects home
 
 ![ScriptBox projects home — empty state](docs/readme-assets/projects-empty.png)
-
-### New project setup
-
-![New project — title, author, and PDF import](docs/readme-assets/new-project-filled.png)
-
-### Beat-based editor
-
-![Script editor with scene, action, character, and dialogue lines](docs/readme-assets/script-editor.png)
-
-### Live PDF preview
-
-![Editor with live PDF preview panel](docs/readme-assets/editor-with-preview.png)
 
 ## Features
 
@@ -89,6 +101,7 @@ screenwriting-tool/
     index.html           # Projects home
     edit.html            # Editor
   docs/readme-assets/    # README screenshots
+  scripts/               # capture_readme_screenshots.py (maintainers)
   requirements.txt
 ```
 

@@ -1,0 +1,36 @@
+---
+description: Commit and push screenwriting-tool changes as santoshimz
+alwaysApply: true
+---
+
+# Git identity — santoshimz
+
+For this repository (`screenwriting-tool`), always commit and push as **santoshimz**.
+
+## Commit author
+
+Do **not** change global or local `git config`. Set the author per commit:
+
+```bash
+git commit --author="santoshimz <santoshimz@gmail.com>" -m "$(cat <<'EOF'
+Your message here.
+
+EOF
+)"
+```
+
+## Push remote
+
+Use the SSH host alias that authenticates as santoshimz:
+
+```bash
+git remote set-url origin git@github-santoshimz:santoshimz/screenwriting-tool.git
+git push -u origin main
+```
+
+If `origin` already uses `github-santoshimz`, push normally.
+
+## Scope
+
+- Applies to all commits in this repo unless the user explicitly asks for a different identity.
+- Never commit `drafts/`, `.venv/`, or user screenplay PDFs.

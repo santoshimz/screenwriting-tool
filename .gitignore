@@ -7,3 +7,8 @@ __pycache__/
 drafts/
 static/seed-import.json
 .import_tmp.pdf
+
+# Cursor: version rules only; ignore other local editor state
+.cursor/*
+!.cursor/rules/
+!.cursor/rules/**
