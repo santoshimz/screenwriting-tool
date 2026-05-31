@@ -134,6 +134,22 @@ This repository is released under the **[MIT License](./LICENSE)** (Copyright ©
 **Import responsibly:** only upload PDFs you have the right to use. ScriptBox parses
 text from PDFs locally; it does not redistribute third-party scripts.
 
+## Publish to GitHub
+
+From the repo root, commit and push in one step:
+
+```bash
+./scripts/push.sh "Your commit message"
+```
+
+Push existing commits only (no new commit):
+
+```bash
+./scripts/push.sh --push-only
+```
+
+Commits use author `santoshimz <santoshimz@gmail.com>` and push to `origin` on the current branch.
+
 ## Contributing
 
 Contributions are welcome. See [CONTRIBUTING.md](./CONTRIBUTING.md) for setup,

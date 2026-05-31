@@ -454,6 +454,10 @@
       gap: 0.25rem;
       align-items: center;
     }
+    button.icon-btn.insert {
+      background: rgba(107, 159, 255, 0.14);
+      color: var(--accent);
+    }
     .beat-actions {
       display: flex;
       flex-direction: column;
@@ -974,6 +978,9 @@
     const ICON_REMOVE_LINE_SVG =
       '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg>';
 
+    const ICON_INSERT_ABOVE_SVG =
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>';
+
     const ICON_REMOVE_BEAT_SVG =
       '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>';
 
@@ -1336,6 +1343,18 @@
 
       const rowActions = document.createElement('div');
       rowActions.className = 'line-row-actions';
+      const insertAbove = document.createElement('button');
+      insertAbove.type = 'button';
+      insertAbove.className = 'icon-btn insert line-insert-above-icon';
+      insertAbove.setAttribute('aria-label', 'Insert a line above this one');
+      insertAbove.title = 'Insert line above';
+      insertAbove.innerHTML = ICON_INSERT_ABOVE_SVG;
+      insertAbove.addEventListener('click', () => {
+        const type = FIELD_ORDER.includes(sel.value) ? sel.value : 'action';
+        const newRow = addLineRow(linesHost, { type, text: '' }, row);
+        newRow.querySelector('textarea')?.focus();
+        saveStateDebounced();
+      });
       const rm = document.createElement('button');
       rm.type = 'button';
       rm.className = 'icon-btn danger line-remove-icon';
@@ -1353,6 +1372,7 @@
         row.remove();
         saveStateDebounced();
       });
+      rowActions.appendChild(insertAbove);
       rowActions.appendChild(rm);
 
       row.appendChild(sel);
@@ -1368,7 +1388,7 @@
       return row;
     }
 
-    function addBeat(data) {
+    function addBeat(data, insertBeforeNode = null) {
       const d = normalizeBeat(data != null ? data : emptyBeat());
       const host = $('blocks');
       const beat = document.createElement('div');
@@ -1477,6 +1497,16 @@
 
       const actions = document.createElement('div');
       actions.className = 'beat-actions';
+      const insertBeatAbove = document.createElement('button');
+      insertBeatAbove.type = 'button';
+      insertBeatAbove.className = 'icon-btn insert beat-insert-above-icon';
+      insertBeatAbove.setAttribute('aria-label', 'Insert a beat above this one');
+      insertBeatAbove.title = 'Insert beat above';
+      insertBeatAbove.innerHTML = ICON_INSERT_ABOVE_SVG;
+      insertBeatAbove.addEventListener('click', () => {
+        const newBeat = insertBeatBefore(beat);
+        scrollToBeatIfNeeded(newBeat);
+      });
       const del = document.createElement('button');
       del.type = 'button';
       del.className = 'icon-btn danger beat-remove-icon';
@@ -1487,13 +1517,19 @@
         beat.remove();
         saveStateDebounced();
       });
+      actions.appendChild(insertBeatAbove);
       actions.appendChild(del);
 
       beat.appendChild(beatHandle);
       beat.appendChild(column);
       beat.appendChild(actions);
-      host.appendChild(beat);
+      if (insertBeforeNode != null) {
+        host.insertBefore(beat, insertBeforeNode);
+      } else {
+        host.appendChild(beat);
+      }
       updateBeatSummary(beat);
+      return beat;
     }
 
     let saveTimer;
@@ -1927,27 +1963,27 @@
       const d = $('versionsDialog');
       if (d && d.close) d.close();
     });
+    function insertBeatBefore(beatEl) {
+      collapseAllBeatsExcept(null);
+      const newBeat = addBeat(emptyBeat(), beatEl);
+      newBeat.classList.remove('collapsed');
+      const bar = newBeat.querySelector('.beat-summary-bar');
+      if (bar) bar.setAttribute('tabindex', '-1');
+      requestAnimationFrame(() => {
+        syncAllLineTextareas();
+        newBeat.querySelector('.beat-lines textarea')?.focus();
+      });
+      saveStateDebounced();
+      return newBeat;
+    }
+
     function addBeatAtEnd() {
-      const blocks = $('blocks');
-      if (blocks) {
-        for (const b of blocks.querySelectorAll('.beat')) {
-          b.classList.add('collapsed');
-          const bar = b.querySelector('.beat-summary-bar');
-          if (bar) bar.setAttribute('tabindex', '0');
-          updateBeatSummary(b);
-        }
-      }
-      addBeat(emptyBeat());
-      const all = $('blocks')?.querySelectorAll('.beat');
-      let newBeat = null;
-      if (all?.length) {
-        const last = all[all.length - 1];
-        newBeat = last;
-        last.classList.remove('collapsed');
-        const lb = last.querySelector('.beat-summary-bar');
-        if (lb) lb.setAttribute('tabindex', '-1');
-        requestAnimationFrame(() => syncAllLineTextareas());
-      }
+      collapseAllBeatsExcept(null);
+      const newBeat = addBeat(emptyBeat());
+      newBeat.classList.remove('collapsed');
+      const bar = newBeat.querySelector('.beat-summary-bar');
+      if (bar) bar.setAttribute('tabindex', '-1');
+      requestAnimationFrame(() => syncAllLineTextareas());
       saveStateDebounced();
       return newBeat;
     }
