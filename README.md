@@ -45,7 +45,7 @@ Open version history to browse snapshots and restore an older draft.
 - **Autosave** — drafts stored on disk under `drafts/`
 - **Version snapshots** — save labeled versions (`v1`, `v2`, …) and restore later (up to 50 per project)
 - **PDF import** — upload a screenplay PDF and convert it into editable beats
-- **PDF export & preview** — industry-style Courier layout with live preview
+- **PDF export & preview** — A4 Final Draft–style layout (Courier Prime 12pt, scene numbers, page numbers, title page fields)
 - **Embeddable API** — FastAPI routes can be mounted into another app (see [Mounting](#mounting-in-another-app))
 
 ## Requirements

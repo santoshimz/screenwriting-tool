@@ -14,10 +14,23 @@ DRAFT_DIR = APP_DIR / "drafts"
 
 # UUID, or legacy stem e.g. ``autosave``
 PROJECT_ID_RE = re.compile(r"^[a-zA-Z0-9\-]{8,64}$")
-# ``secrets.token_hex(8)`` filenames
 VERSION_ID_RE = re.compile(r"^[a-f0-9]{16}$")
 _VERSION_LABEL_SEQ = re.compile(r"^v(\d+)$", re.IGNORECASE)
 MAX_VERSIONS_PER_PROJECT = 50
+
+
+def _title_page_fields(payload: dict[str, Any]) -> dict[str, str]:
+    def _s(key: str, snake: str, limit: int) -> str:
+        raw = payload.get(key, payload.get(snake, ""))
+        return str(raw or "")[:limit]
+
+    return {
+        "scriptType": _s("scriptType", "script_type", 120),
+        "workingTitleNote": _s("workingTitleNote", "working_title_note", 120),
+        "contactEmail": _s("contactEmail", "contact_email", 200),
+        "copyrightLine": _s("copyrightLine", "copyright_line", 300),
+        "productionCompany": _s("productionCompany", "production_company", 300),
+    }
 
 
 def validate_project_id(project_id: str) -> str:
@@ -55,6 +68,7 @@ def write_draft(project_id: str, payload: dict[str, Any]) -> dict[str, Any]:
         "editorEntered": bool(payload.get("editorEntered", False)),
         "beats": payload.get("beats") if isinstance(payload.get("beats"), list) else [],
         "savedAt": datetime.now(timezone.utc).isoformat(),
+        **_title_page_fields(payload),
     }
     draft_path(project_id).write_text(
         json.dumps(out, ensure_ascii=False, indent=2) + "\n",
@@ -132,6 +146,7 @@ def save_version(project_id: str, payload: dict[str, Any], label: str = "") -> d
         "author": str(payload.get("author", "")),
         "editorEntered": bool(payload.get("editorEntered", False)),
         "beats": payload.get("beats") if isinstance(payload.get("beats"), list) else [],
+        **_title_page_fields(payload),
     }
     (vdir / f"{version_id}.json").write_text(
         json.dumps(out, ensure_ascii=False, indent=2) + "\n",
@@ -196,6 +211,11 @@ def restore_version_to_draft(project_id: str, version_id: str) -> dict[str, Any]
             "author": snap.get("author", ""),
             "beats": snap.get("beats") if isinstance(snap.get("beats"), list) else [],
             "editorEntered": bool(snap.get("editorEntered", False)),
+            "scriptType": snap.get("scriptType", ""),
+            "workingTitleNote": snap.get("workingTitleNote", ""),
+            "contactEmail": snap.get("contactEmail", ""),
+            "copyrightLine": snap.get("copyrightLine", ""),
+            "productionCompany": snap.get("productionCompany", ""),
         },
     )
 

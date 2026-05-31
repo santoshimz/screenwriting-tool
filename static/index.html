@@ -196,6 +196,32 @@
       outline: 2px solid var(--accent);
       border-color: transparent;
     }
+    .meta-form details {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.65rem 0.85rem;
+      background: var(--panel);
+    }
+    .meta-form summary {
+      cursor: pointer;
+      font-size: 0.88rem;
+      font-weight: 500;
+      color: var(--text);
+    }
+    .meta-form details[open] summary {
+      margin-bottom: 0.75rem;
+    }
+    .meta-form input[type="email"] {
+      display: block;
+      width: 100%;
+      margin-top: 0.35rem;
+      padding: 0.55rem 0.65rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: #141820;
+      color: var(--text);
+      font-size: 1rem;
+    }
     .back-row {
       margin-bottom: 1rem;
     }
@@ -268,6 +294,24 @@
       <label>Author (optional)
         <input type="text" id="author" placeholder="Your name" autocomplete="off" />
       </label>
+      <details>
+        <summary>PDF title page (optional)</summary>
+        <label>Script type
+          <input type="text" id="scriptType" placeholder="e.g. SHORT FILM" autocomplete="off" />
+        </label>
+        <label>Working title note
+          <input type="text" id="workingTitleNote" placeholder="e.g. (WORKING TITLE)" autocomplete="off" />
+        </label>
+        <label>Contact email
+          <input type="email" id="contactEmail" placeholder="you@example.com" autocomplete="off" />
+        </label>
+        <label>Copyright line
+          <input type="text" id="copyrightLine" placeholder="Copyright © 2026 by Your Name" autocomplete="off" />
+        </label>
+        <label>Production / registration
+          <input type="text" id="productionCompany" placeholder="Registered, Production Co." autocomplete="off" />
+        </label>
+      </details>
       <input type="file" id="pdfFileMeta" hidden accept="application/pdf,.pdf" />
       <button type="button" id="btnImportPdfMeta">Import PDF</button>
       <button type="button" class="primary" id="btnContinue">Open script editor</button>
@@ -384,6 +428,7 @@
           author: state.author != null ? String(state.author) : '',
           beats: Array.isArray(state.beats) ? state.beats : [],
           editorEntered: !!state.editorEntered,
+          ...titlePageFieldsFromState(state),
         };
         for (const url of urls) {
           const res = await fetch(url, {
@@ -411,6 +456,37 @@
     }
 
     const FIELD_ORDER = ['scene', 'action', 'character', 'parenthetical', 'dialogue', 'transition'];
+    const TITLE_PAGE_FIELD_IDS = [
+      'scriptType',
+      'workingTitleNote',
+      'contactEmail',
+      'copyrightLine',
+      'productionCompany',
+    ];
+
+    function titlePageFieldsFromState(state) {
+      const out = {};
+      for (const id of TITLE_PAGE_FIELD_IDS) {
+        out[id] = state && state[id] != null ? String(state[id]) : '';
+      }
+      return out;
+    }
+
+    function readTitlePageFields() {
+      const out = {};
+      for (const id of TITLE_PAGE_FIELD_IDS) {
+        const el = $(id);
+        out[id] = el ? String(el.value || '') : '';
+      }
+      return out;
+    }
+
+    function applyTitlePageFields(state) {
+      for (const id of TITLE_PAGE_FIELD_IDS) {
+        const el = $(id);
+        if (el) el.value = state && state[id] != null ? String(state[id]) : '';
+      }
+    }
 
     function defaultBeats() {
       return [
@@ -616,6 +692,7 @@
         } catch { /* ignore */ }
         $('title').value = chosen.title || '';
         $('author').value = chosen.author || '';
+        applyTitlePageFields(chosen);
         updateRegistryMeta(
           projectId,
           (chosen.title || '').trim() || 'Untitled',
@@ -624,6 +701,7 @@
       } else {
         $('title').value = '';
         $('author').value = '';
+        applyTitlePageFields(null);
       }
     }
 
@@ -662,7 +740,9 @@
         }
         const beats = data.beats.map((b) => normalizeBeat(b));
         const now = new Date().toISOString();
+        const prev = loadProjectState(detailProjectId) || {};
         const state = {
+          ...titlePageFieldsFromState(prev),
           title: data.title || '',
           author: data.author || '',
           beats,
@@ -700,6 +780,7 @@
         beats,
         savedAt,
         editorEntered: prev.editorEntered !== false,
+        ...readTitlePageFields(),
       };
       try {
         localStorage.setItem(projectStorageKey(detailProjectId), JSON.stringify(state));
@@ -828,6 +909,10 @@
     });
     $('title').addEventListener('input', saveMetaDebounced);
     $('author').addEventListener('input', saveMetaDebounced);
+    for (const id of TITLE_PAGE_FIELD_IDS) {
+      const el = $(id);
+      if (el) el.addEventListener('input', saveMetaDebounced);
+    }
 
     $('btnContinue').addEventListener('click', async () => {
       if (!detailProjectId) return;

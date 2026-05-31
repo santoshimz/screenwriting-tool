@@ -11,13 +11,14 @@ and compatible with MIT distribution.
 | [python-multipart](https://github.com/Kludex/python-multipart) | Apache-2.0 | PDF upload handling |
 | [Pydantic](https://github.com/pydantic/pydantic) | MIT | Request/response models |
 | [ReportLab](https://www.reportlab.com/devdocs/) | BSD-style | PDF export |
+| [Courier Prime](https://github.com/quoteunquoteapps/CourierPrime) | SIL OFL 1.1 | Screenplay PDF font (bundled under `fonts/`) |
 | [pypdf](https://github.com/py-pdf/pypdf) | BSD-3-Clause | PDF import parsing |
 
 ## What is not bundled
 
 - No React, Vue, jQuery, Bootstrap, or other third-party frontend frameworks.
 - No CDN-hosted JavaScript or CSS.
-- No proprietary fonts beyond system / PDF-standard Courier.
+- **Courier Prime** (SIL OFL 1.1) embedded for PDF export — see `fonts/OFL.txt`.
 - No sample screenplay PDFs or copyrighted script content in this repository.
 
 ## User content

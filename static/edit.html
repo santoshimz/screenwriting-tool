@@ -619,6 +619,11 @@
   </div>
   <input type="hidden" id="title" value="" />
   <input type="hidden" id="author" value="" />
+  <input type="hidden" id="scriptType" value="" />
+  <input type="hidden" id="workingTitleNote" value="" />
+  <input type="hidden" id="contactEmail" value="" />
+  <input type="hidden" id="copyrightLine" value="" />
+  <input type="hidden" id="productionCompany" value="" />
   <div class="app-top">
       <header>
         <div class="editor-header-row">
@@ -723,6 +728,46 @@
   <script>
     const PROJECTS_REGISTRY_KEY = 'screenplay-projects-v1';
     const $ = (id) => document.getElementById(id);
+    const TITLE_PAGE_FIELD_IDS = [
+      'scriptType',
+      'workingTitleNote',
+      'contactEmail',
+      'copyrightLine',
+      'productionCompany',
+    ];
+
+    function readTitlePageFields() {
+      const out = {};
+      for (const id of TITLE_PAGE_FIELD_IDS) {
+        const el = $(id);
+        out[id] = el ? String(el.value || '') : '';
+      }
+      return out;
+    }
+
+    function applyTitlePageFields(state) {
+      for (const id of TITLE_PAGE_FIELD_IDS) {
+        const el = $(id);
+        if (el) el.value = state && state[id] != null ? String(state[id]) : '';
+      }
+    }
+
+    function titlePageFieldsFromState(state) {
+      const out = {};
+      for (const id of TITLE_PAGE_FIELD_IDS) {
+        out[id] = state && state[id] != null ? String(state[id]) : '';
+      }
+      return out;
+    }
+
+    function collectExportBody() {
+      return {
+        title: ($('title').value || '').trim() || 'Untitled',
+        author: ($('author').value || '').trim(),
+        ...readTitlePageFields(),
+        blocks: collectBlocks(),
+      };
+    }
 
     function screenplayListHref() {
       const p = window.location.pathname || '';
@@ -862,6 +907,7 @@
           author: state.author != null ? String(state.author) : '',
           beats: Array.isArray(state.beats) ? state.beats : [],
           editorEntered: !!state.editorEntered,
+          ...titlePageFieldsFromState(state),
         };
         for (const url of urls) {
           const res = await fetch(url, {
@@ -1077,6 +1123,7 @@
         beats,
         editorEntered: editorEnteredFlag,
         savedAt,
+        ...readTitlePageFields(),
       };
       try {
         localStorage.setItem(draftStorageKey(), JSON.stringify(state));
@@ -1507,11 +1554,7 @@
       ph.classList.remove('hidden');
       ph.textContent = 'Updating preview…';
       try {
-        const body = {
-          title: $('title').value.trim() || 'Untitled',
-          author: $('author').value.trim(),
-          blocks: collectBlocks(),
-        };
+        const body = collectExportBody();
         const urls = screenplayApiCandidates('/api/export-pdf');
         let res = null;
         for (const url of urls) {
@@ -1611,6 +1654,7 @@
         author: $('author').value,
         beats: collectBeatsForSave(),
         editorEntered: !!editorEnteredFlag,
+        ...readTitlePageFields(),
       };
     }
 
@@ -1620,6 +1664,7 @@
       const author = draft.author != null ? String(draft.author) : '';
       $('title').value = title;
       $('author').value = author;
+      applyTitlePageFields(draft);
       const beats =
         Array.isArray(draft.beats) && draft.beats.length
           ? draft.beats.map((b) => normalizeBeat(b))
@@ -1638,6 +1683,7 @@
             beats,
             editorEntered: editorEnteredFlag,
             savedAt,
+            ...titlePageFieldsFromState(draft),
           }),
         );
       } catch { /* ignore */ }
@@ -1649,6 +1695,7 @@
       if (!s) return;
       $('title').value = s.title || '';
       $('author').value = s.author || '';
+      applyTitlePageFields(s);
       updateMetaSummary();
     }
 
@@ -1681,6 +1728,7 @@
       editorEnteredFlag = true;
       $('title').value = title;
       $('author').value = author;
+      applyTitlePageFields(chosen || null);
       renderBeatsOnly(beatsSnapshot);
       updateMetaSummary();
     }
@@ -1827,11 +1875,7 @@
       btn.disabled = true;
       setStatus('Building PDF…', '');
       try {
-        const body = {
-          title: $('title').value.trim() || 'Untitled',
-          author: $('author').value.trim(),
-          blocks: collectBlocks(),
-        };
+        const body = collectExportBody();
         const urls = screenplayApiCandidates('/api/export-pdf');
         let res = null;
         for (const url of urls) {

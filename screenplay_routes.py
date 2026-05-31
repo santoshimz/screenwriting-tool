@@ -6,7 +6,7 @@ from typing import Any
 
 from fastapi import APIRouter, File, HTTPException, Query, UploadFile
 from fastapi.responses import Response
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from draft_store import (
     delete_draft,
@@ -24,10 +24,17 @@ from screenplay_import import import_pdf_bytes
 
 
 class DraftSaveBody(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
     title: str = ""
     author: str = ""
     editorEntered: bool = False
     beats: list[dict[str, Any]] = Field(default_factory=list)
+    script_type: str = Field(default="", alias="scriptType")
+    working_title_note: str = Field(default="", alias="workingTitleNote")
+    contact_email: str = Field(default="", alias="contactEmail")
+    copyright_line: str = Field(default="", alias="copyrightLine")
+    production_company: str = Field(default="", alias="productionCompany")
 
 
 class VersionSaveBody(DraftSaveBody):
